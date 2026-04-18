@@ -1,0 +1,1425 @@
+{
+  "nodes": [
+    {
+      "id": "C1",
+      "kind": "C",
+      "partCode": 1,
+      "label": "Base",
+      "step": 28,
+      "taskCode": "ho",
+      "taskDifficulty": 0.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 25.0,
+        "corrosion_level": 3.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C10",
+      "kind": "C",
+      "partCode": 10,
+      "label": "Shaft Sprocket 5",
+      "step": 25,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 40.0,
+        "corrosion_level": 2.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C11DX",
+      "kind": "C",
+      "partCode": 11,
+      "label": "Flange 4 (right)",
+      "step": 5,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 35.0,
+        "corrosion_level": 3.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C11SX",
+      "kind": "C",
+      "partCode": 11,
+      "label": "Flange 4 (left)",
+      "step": 4,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 35.0,
+        "corrosion_level": 3.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C12",
+      "kind": "C",
+      "partCode": 12,
+      "label": "Flange 5",
+      "step": 6,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 35.0,
+        "corrosion_level": 3.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C13",
+      "kind": "C",
+      "partCode": 13,
+      "label": "Bearing flange (no hole)",
+      "step": 7,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 35.0,
+        "corrosion_level": 3.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C14",
+      "kind": "C",
+      "partCode": 14,
+      "label": "Bearing flange (with hole)",
+      "step": 8,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 35.0,
+        "corrosion_level": 3.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C15",
+      "kind": "C",
+      "partCode": 15,
+      "label": "Cover",
+      "step": 12,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 30.0,
+        "corrosion_level": 3.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C16",
+      "kind": "C",
+      "partCode": 18,
+      "label": "Hook",
+      "step": 10,
+      "taskCode": "un",
+      "taskDifficulty": 2.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 22.0,
+        "corrosion_level": 4.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C17",
+      "kind": "C",
+      "partCode": 20,
+      "label": "Spacer",
+      "step": 24,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 35.0,
+        "corrosion_level": 2.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C2DX",
+      "kind": "C",
+      "partCode": 2,
+      "label": "Bearings 12 (right)",
+      "step": 14,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 45.0,
+        "corrosion_level": 1.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C2SX",
+      "kind": "C",
+      "partCode": 2,
+      "label": "Bearings 12 (left)",
+      "step": 9,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 45.0,
+        "corrosion_level": 1.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C3DX",
+      "kind": "C",
+      "partCode": 3,
+      "label": "Bearings 14 (right)",
+      "step": 16,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 45.0,
+        "corrosion_level": 1.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C3SX",
+      "kind": "C",
+      "partCode": 3,
+      "label": "Bearings 14 (left)",
+      "step": 15,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 45.0,
+        "corrosion_level": 1.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C4",
+      "kind": "C",
+      "partCode": 4,
+      "label": "Shaft 5",
+      "step": 27,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 40.0,
+        "corrosion_level": 1.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C5",
+      "kind": "C",
+      "partCode": 5,
+      "label": "Shaft 4",
+      "step": 23,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 40.0,
+        "corrosion_level": 1.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C6",
+      "kind": "C",
+      "partCode": 6,
+      "label": "Shaft 3",
+      "step": 18,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 40.0,
+        "corrosion_level": 1.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C7",
+      "kind": "C",
+      "partCode": 7,
+      "label": "Shaft Sprocket 3",
+      "step": 17,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 40.0,
+        "corrosion_level": 2.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C8",
+      "kind": "C",
+      "partCode": 8,
+      "label": "Shaft Sprocket 4 RH",
+      "step": 19,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 40.0,
+        "corrosion_level": 2.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "C9",
+      "kind": "C",
+      "partCode": 9,
+      "label": "Shaft Sprocket 4",
+      "step": 21,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": {
+        "temperature": 40.0,
+        "corrosion_level": 2.0
+      },
+      "fastener": null,
+      "tool": null
+    },
+    {
+      "id": "F1",
+      "kind": "F",
+      "partCode": 16,
+      "label": "Screw M12\u00d730 ISO 4016",
+      "step": 1,
+      "taskCode": "un",
+      "taskDifficulty": 2.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.95,
+        "tool_wear": 0.02,
+        "temperature": 28.0,
+        "bolt_seizure_probability": 0.15,
+        "bearing_jamming_probability": 0.02,
+        "removal_force_Nm": 90.0
+      },
+      "tool": {
+        "tool_success_rate": 0.95,
+        "tool_wear": 0.02,
+        "temperature": 28.0,
+        "bolt_seizure_probability": 0.15,
+        "bearing_jamming_probability": 0.02,
+        "removal_force_Nm": 90.0
+      }
+    },
+    {
+      "id": "F2",
+      "kind": "F",
+      "partCode": 17,
+      "label": "Positioning Pin ISO 2338",
+      "step": 11,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.88,
+        "tool_wear": 0.08,
+        "temperature": 32.0,
+        "bolt_seizure_probability": 0.08,
+        "bearing_jamming_probability": 0.18,
+        "removal_force_Nm": 110.0
+      },
+      "tool": {
+        "tool_success_rate": 0.88,
+        "tool_wear": 0.08,
+        "temperature": 32.0,
+        "bolt_seizure_probability": 0.08,
+        "bearing_jamming_probability": 0.18,
+        "removal_force_Nm": 110.0
+      }
+    },
+    {
+      "id": "F3DX",
+      "kind": "F",
+      "partCode": 19,
+      "label": "Flange screws (right)",
+      "step": 3,
+      "taskCode": "un",
+      "taskDifficulty": 2.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.97,
+        "tool_wear": 0.01,
+        "temperature": 30.0,
+        "bolt_seizure_probability": 0.1,
+        "bearing_jamming_probability": 0.01,
+        "removal_force_Nm": 50.0
+      },
+      "tool": {
+        "tool_success_rate": 0.97,
+        "tool_wear": 0.01,
+        "temperature": 30.0,
+        "bolt_seizure_probability": 0.1,
+        "bearing_jamming_probability": 0.01,
+        "removal_force_Nm": 50.0
+      }
+    },
+    {
+      "id": "F3SX",
+      "kind": "F",
+      "partCode": 19,
+      "label": "Flange screws (left)",
+      "step": 2,
+      "taskCode": "un",
+      "taskDifficulty": 2.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.97,
+        "tool_wear": 0.01,
+        "temperature": 30.0,
+        "bolt_seizure_probability": 0.1,
+        "bearing_jamming_probability": 0.01,
+        "removal_force_Nm": 50.0
+      },
+      "tool": {
+        "tool_success_rate": 0.97,
+        "tool_wear": 0.01,
+        "temperature": 30.0,
+        "bolt_seizure_probability": 0.1,
+        "bearing_jamming_probability": 0.01,
+        "removal_force_Nm": 50.0
+      }
+    },
+    {
+      "id": "F4",
+      "kind": "F",
+      "partCode": 21,
+      "label": "Shaft 3 key",
+      "step": 26,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      },
+      "tool": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      }
+    },
+    {
+      "id": "F5",
+      "kind": "F",
+      "partCode": 22,
+      "label": "Shaft 4 key RH",
+      "step": 22,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      },
+      "tool": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      }
+    },
+    {
+      "id": "F6",
+      "kind": "F",
+      "partCode": 23,
+      "label": "Shaft 4 key",
+      "step": 20,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      },
+      "tool": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      }
+    },
+    {
+      "id": "F7",
+      "kind": "F",
+      "partCode": 24,
+      "label": "Shaft 5 key",
+      "step": 13,
+      "taskCode": "re",
+      "taskDifficulty": 1.0,
+      "toolCode": null,
+      "component": null,
+      "fastener": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      },
+      "tool": {
+        "tool_success_rate": 0.82,
+        "tool_wear": 0.08,
+        "temperature": 48.0,
+        "bolt_seizure_probability": 0.05,
+        "bearing_jamming_probability": 0.3,
+        "removal_force_Nm": 180.0
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "F1",
+      "to": "F2"
+    },
+    {
+      "from": "F3SX",
+      "to": "F2"
+    },
+    {
+      "from": "F3DX",
+      "to": "F2"
+    },
+    {
+      "from": "C16",
+      "to": "F2"
+    },
+    {
+      "from": "F1",
+      "to": "F4"
+    },
+    {
+      "from": "F3SX",
+      "to": "F4"
+    },
+    {
+      "from": "F3DX",
+      "to": "F4"
+    },
+    {
+      "from": "C3SX",
+      "to": "F4"
+    },
+    {
+      "from": "C10",
+      "to": "F4"
+    },
+    {
+      "from": "C11SX",
+      "to": "F4"
+    },
+    {
+      "from": "C11DX",
+      "to": "F4"
+    },
+    {
+      "from": "C12",
+      "to": "F4"
+    },
+    {
+      "from": "C13",
+      "to": "F4"
+    },
+    {
+      "from": "C14",
+      "to": "F4"
+    },
+    {
+      "from": "C15",
+      "to": "F4"
+    },
+    {
+      "from": "C17",
+      "to": "F4"
+    },
+    {
+      "from": "F1",
+      "to": "F5"
+    },
+    {
+      "from": "F3DX",
+      "to": "F5"
+    },
+    {
+      "from": "C2SX",
+      "to": "F5"
+    },
+    {
+      "from": "C9",
+      "to": "F5"
+    },
+    {
+      "from": "C11SX",
+      "to": "F5"
+    },
+    {
+      "from": "C11DX",
+      "to": "F5"
+    },
+    {
+      "from": "C12",
+      "to": "F5"
+    },
+    {
+      "from": "C13",
+      "to": "F5"
+    },
+    {
+      "from": "C14",
+      "to": "F5"
+    },
+    {
+      "from": "C15",
+      "to": "F5"
+    },
+    {
+      "from": "F1",
+      "to": "F6"
+    },
+    {
+      "from": "F3SX",
+      "to": "F6"
+    },
+    {
+      "from": "F3DX",
+      "to": "F6"
+    },
+    {
+      "from": "C2DX",
+      "to": "F6"
+    },
+    {
+      "from": "C8",
+      "to": "F6"
+    },
+    {
+      "from": "C11SX",
+      "to": "F6"
+    },
+    {
+      "from": "C11DX",
+      "to": "F6"
+    },
+    {
+      "from": "C12",
+      "to": "F6"
+    },
+    {
+      "from": "C13",
+      "to": "F6"
+    },
+    {
+      "from": "C14",
+      "to": "F6"
+    },
+    {
+      "from": "C15",
+      "to": "F6"
+    },
+    {
+      "from": "F1",
+      "to": "F7"
+    },
+    {
+      "from": "F3SX",
+      "to": "F7"
+    },
+    {
+      "from": "F3DX",
+      "to": "F7"
+    },
+    {
+      "from": "C2SX",
+      "to": "F7"
+    },
+    {
+      "from": "C11SX",
+      "to": "F7"
+    },
+    {
+      "from": "C11DX",
+      "to": "F7"
+    },
+    {
+      "from": "C12",
+      "to": "F7"
+    },
+    {
+      "from": "C13",
+      "to": "F7"
+    },
+    {
+      "from": "C14",
+      "to": "F7"
+    },
+    {
+      "from": "C15",
+      "to": "F7"
+    },
+    {
+      "from": "F1",
+      "to": "C1"
+    },
+    {
+      "from": "F2",
+      "to": "C1"
+    },
+    {
+      "from": "F3SX",
+      "to": "C1"
+    },
+    {
+      "from": "F3DX",
+      "to": "C1"
+    },
+    {
+      "from": "C2SX",
+      "to": "C1"
+    },
+    {
+      "from": "C2DX",
+      "to": "C1"
+    },
+    {
+      "from": "C3SX",
+      "to": "C1"
+    },
+    {
+      "from": "C3DX",
+      "to": "C1"
+    },
+    {
+      "from": "C4",
+      "to": "C1"
+    },
+    {
+      "from": "C5",
+      "to": "C1"
+    },
+    {
+      "from": "C6",
+      "to": "C1"
+    },
+    {
+      "from": "C7",
+      "to": "C1"
+    },
+    {
+      "from": "C8",
+      "to": "C1"
+    },
+    {
+      "from": "C9",
+      "to": "C1"
+    },
+    {
+      "from": "C10",
+      "to": "C1"
+    },
+    {
+      "from": "C11SX",
+      "to": "C1"
+    },
+    {
+      "from": "C11DX",
+      "to": "C1"
+    },
+    {
+      "from": "C12",
+      "to": "C1"
+    },
+    {
+      "from": "C13",
+      "to": "C1"
+    },
+    {
+      "from": "C14",
+      "to": "C1"
+    },
+    {
+      "from": "C15",
+      "to": "C1"
+    },
+    {
+      "from": "C16",
+      "to": "C1"
+    },
+    {
+      "from": "F1",
+      "to": "C2SX"
+    },
+    {
+      "from": "F3SX",
+      "to": "C2SX"
+    },
+    {
+      "from": "F3DX",
+      "to": "C2SX"
+    },
+    {
+      "from": "C11SX",
+      "to": "C2SX"
+    },
+    {
+      "from": "C11DX",
+      "to": "C2SX"
+    },
+    {
+      "from": "C12",
+      "to": "C2SX"
+    },
+    {
+      "from": "C13",
+      "to": "C2SX"
+    },
+    {
+      "from": "C14",
+      "to": "C2SX"
+    },
+    {
+      "from": "F1",
+      "to": "C2DX"
+    },
+    {
+      "from": "F3SX",
+      "to": "C2DX"
+    },
+    {
+      "from": "F3DX",
+      "to": "C2DX"
+    },
+    {
+      "from": "C11SX",
+      "to": "C2DX"
+    },
+    {
+      "from": "C11DX",
+      "to": "C2DX"
+    },
+    {
+      "from": "C12",
+      "to": "C2DX"
+    },
+    {
+      "from": "C13",
+      "to": "C2DX"
+    },
+    {
+      "from": "C14",
+      "to": "C2DX"
+    },
+    {
+      "from": "C15",
+      "to": "C2DX"
+    },
+    {
+      "from": "F1",
+      "to": "C3SX"
+    },
+    {
+      "from": "F3SX",
+      "to": "C3SX"
+    },
+    {
+      "from": "F3DX",
+      "to": "C3SX"
+    },
+    {
+      "from": "C11SX",
+      "to": "C3SX"
+    },
+    {
+      "from": "C11DX",
+      "to": "C3SX"
+    },
+    {
+      "from": "C12",
+      "to": "C3SX"
+    },
+    {
+      "from": "C13",
+      "to": "C3SX"
+    },
+    {
+      "from": "C14",
+      "to": "C3SX"
+    },
+    {
+      "from": "C15",
+      "to": "C3SX"
+    },
+    {
+      "from": "F1",
+      "to": "C3DX"
+    },
+    {
+      "from": "F3SX",
+      "to": "C3DX"
+    },
+    {
+      "from": "F3DX",
+      "to": "C3DX"
+    },
+    {
+      "from": "C11SX",
+      "to": "C3DX"
+    },
+    {
+      "from": "C11DX",
+      "to": "C3DX"
+    },
+    {
+      "from": "C12",
+      "to": "C3DX"
+    },
+    {
+      "from": "C13",
+      "to": "C3DX"
+    },
+    {
+      "from": "C14",
+      "to": "C3DX"
+    },
+    {
+      "from": "C15",
+      "to": "C3DX"
+    },
+    {
+      "from": "F1",
+      "to": "C4"
+    },
+    {
+      "from": "F3SX",
+      "to": "C4"
+    },
+    {
+      "from": "F3DX",
+      "to": "C4"
+    },
+    {
+      "from": "F4",
+      "to": "C4"
+    },
+    {
+      "from": "C3SX",
+      "to": "C4"
+    },
+    {
+      "from": "C3DX",
+      "to": "C4"
+    },
+    {
+      "from": "C10",
+      "to": "C4"
+    },
+    {
+      "from": "C11SX",
+      "to": "C4"
+    },
+    {
+      "from": "C11DX",
+      "to": "C4"
+    },
+    {
+      "from": "C12",
+      "to": "C4"
+    },
+    {
+      "from": "C13",
+      "to": "C4"
+    },
+    {
+      "from": "C14",
+      "to": "C4"
+    },
+    {
+      "from": "C15",
+      "to": "C4"
+    },
+    {
+      "from": "F1",
+      "to": "C5"
+    },
+    {
+      "from": "F3SX",
+      "to": "C5"
+    },
+    {
+      "from": "F3DX",
+      "to": "C5"
+    },
+    {
+      "from": "F5",
+      "to": "C5"
+    },
+    {
+      "from": "F6",
+      "to": "C5"
+    },
+    {
+      "from": "C2SX",
+      "to": "C5"
+    },
+    {
+      "from": "C2DX",
+      "to": "C5"
+    },
+    {
+      "from": "C8",
+      "to": "C5"
+    },
+    {
+      "from": "C9",
+      "to": "C5"
+    },
+    {
+      "from": "C11SX",
+      "to": "C5"
+    },
+    {
+      "from": "C11DX",
+      "to": "C5"
+    },
+    {
+      "from": "C12",
+      "to": "C5"
+    },
+    {
+      "from": "C13",
+      "to": "C5"
+    },
+    {
+      "from": "C14",
+      "to": "C5"
+    },
+    {
+      "from": "C15",
+      "to": "C5"
+    },
+    {
+      "from": "F1",
+      "to": "C6"
+    },
+    {
+      "from": "F3SX",
+      "to": "C6"
+    },
+    {
+      "from": "F3DX",
+      "to": "C6"
+    },
+    {
+      "from": "F7",
+      "to": "C6"
+    },
+    {
+      "from": "C2SX",
+      "to": "C6"
+    },
+    {
+      "from": "C2DX",
+      "to": "C6"
+    },
+    {
+      "from": "C7",
+      "to": "C6"
+    },
+    {
+      "from": "C11SX",
+      "to": "C6"
+    },
+    {
+      "from": "C11DX",
+      "to": "C6"
+    },
+    {
+      "from": "C12",
+      "to": "C6"
+    },
+    {
+      "from": "C13",
+      "to": "C6"
+    },
+    {
+      "from": "C14",
+      "to": "C6"
+    },
+    {
+      "from": "C15",
+      "to": "C6"
+    },
+    {
+      "from": "F1",
+      "to": "C7"
+    },
+    {
+      "from": "F3SX",
+      "to": "C7"
+    },
+    {
+      "from": "F3DX",
+      "to": "C7"
+    },
+    {
+      "from": "C2SX",
+      "to": "C7"
+    },
+    {
+      "from": "C11SX",
+      "to": "C7"
+    },
+    {
+      "from": "C11DX",
+      "to": "C7"
+    },
+    {
+      "from": "C12",
+      "to": "C7"
+    },
+    {
+      "from": "C13",
+      "to": "C7"
+    },
+    {
+      "from": "C14",
+      "to": "C7"
+    },
+    {
+      "from": "C15",
+      "to": "C7"
+    },
+    {
+      "from": "F1",
+      "to": "C8"
+    },
+    {
+      "from": "F3SX",
+      "to": "C8"
+    },
+    {
+      "from": "F3DX",
+      "to": "C8"
+    },
+    {
+      "from": "C2DX",
+      "to": "C8"
+    },
+    {
+      "from": "C11SX",
+      "to": "C8"
+    },
+    {
+      "from": "C11DX",
+      "to": "C8"
+    },
+    {
+      "from": "C12",
+      "to": "C8"
+    },
+    {
+      "from": "C13",
+      "to": "C8"
+    },
+    {
+      "from": "C14",
+      "to": "C8"
+    },
+    {
+      "from": "C15",
+      "to": "C8"
+    },
+    {
+      "from": "F1",
+      "to": "C9"
+    },
+    {
+      "from": "F3SX",
+      "to": "C9"
+    },
+    {
+      "from": "F3DX",
+      "to": "C9"
+    },
+    {
+      "from": "C2SX",
+      "to": "C9"
+    },
+    {
+      "from": "C11SX",
+      "to": "C9"
+    },
+    {
+      "from": "C11DX",
+      "to": "C9"
+    },
+    {
+      "from": "C12",
+      "to": "C9"
+    },
+    {
+      "from": "C13",
+      "to": "C9"
+    },
+    {
+      "from": "C14",
+      "to": "C9"
+    },
+    {
+      "from": "C15",
+      "to": "C9"
+    },
+    {
+      "from": "F1",
+      "to": "C10"
+    },
+    {
+      "from": "F3SX",
+      "to": "C10"
+    },
+    {
+      "from": "F3DX",
+      "to": "C10"
+    },
+    {
+      "from": "C3SX",
+      "to": "C10"
+    },
+    {
+      "from": "C11SX",
+      "to": "C10"
+    },
+    {
+      "from": "C11DX",
+      "to": "C10"
+    },
+    {
+      "from": "C12",
+      "to": "C10"
+    },
+    {
+      "from": "C13",
+      "to": "C10"
+    },
+    {
+      "from": "C14",
+      "to": "C10"
+    },
+    {
+      "from": "C15",
+      "to": "C10"
+    },
+    {
+      "from": "C17",
+      "to": "C10"
+    },
+    {
+      "from": "F3SX",
+      "to": "C11SX"
+    },
+    {
+      "from": "F3DX",
+      "to": "C11DX"
+    },
+    {
+      "from": "F3SX",
+      "to": "C12"
+    },
+    {
+      "from": "F3DX",
+      "to": "C13"
+    },
+    {
+      "from": "F3SX",
+      "to": "C14"
+    },
+    {
+      "from": "F1",
+      "to": "C15"
+    },
+    {
+      "from": "F3SX",
+      "to": "C15"
+    },
+    {
+      "from": "F3DX",
+      "to": "C15"
+    },
+    {
+      "from": "C11SX",
+      "to": "C15"
+    },
+    {
+      "from": "C11DX",
+      "to": "C15"
+    },
+    {
+      "from": "C12",
+      "to": "C15"
+    },
+    {
+      "from": "C13",
+      "to": "C15"
+    },
+    {
+      "from": "C14",
+      "to": "C15"
+    },
+    {
+      "from": "C16",
+      "to": "C15"
+    },
+    {
+      "from": "F1",
+      "to": "C17"
+    },
+    {
+      "from": "F3SX",
+      "to": "C17"
+    },
+    {
+      "from": "F3DX",
+      "to": "C17"
+    },
+    {
+      "from": "C3SX",
+      "to": "C17"
+    },
+    {
+      "from": "C11SX",
+      "to": "C17"
+    },
+    {
+      "from": "C11DX",
+      "to": "C17"
+    },
+    {
+      "from": "C12",
+      "to": "C17"
+    },
+    {
+      "from": "C13",
+      "to": "C17"
+    },
+    {
+      "from": "C14",
+      "to": "C17"
+    },
+    {
+      "from": "C15",
+      "to": "C17"
+    }
+  ],
+  "goal": "C1",
+  "componentTempMin": 22.0,
+  "componentTempMax": 45.0,
+  "disassemblyStep": {
+    "F1": 1,
+    "F3SX": 2,
+    "F3DX": 3,
+    "C11SX": 4,
+    "C11DX": 5,
+    "C12": 6,
+    "C13": 7,
+    "C14": 8,
+    "C2SX": 9,
+    "C16": 10,
+    "F2": 11,
+    "C15": 12,
+    "F7": 13,
+    "C2DX": 14,
+    "C3SX": 15,
+    "C3DX": 16,
+    "C7": 17,
+    "C6": 18,
+    "C8": 19,
+    "F6": 20,
+    "C9": 21,
+    "F5": 22,
+    "C5": 23,
+    "C17": 24,
+    "C10": 25,
+    "F4": 26,
+    "C4": 27,
+    "C1": 28
+  },
+  "taskDifficultyByCode": {
+    "un": 2.0,
+    "re": 1.0,
+    "ho": 0.0
+  },
+  "taskDescByCode": {
+    "un": "unscrew",
+    "re": "remove",
+    "ho": "hold/grip"
+  }
+}

@@ -1,0 +1,2343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Optimal Disassembly Sequence Planning — Dijkstra & GA (Gearbox)</title>
+  <!-- Lets Three.js addons (GLTFLoader, OrbitControls) resolve bare `import ... from 'three'` -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    html {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #e8e8e8;
+    }
+
+    header {
+      flex-shrink: 0;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.25);
+    }
+
+    h1 {
+      font-size: 16px;
+      margin: 0;
+      font-weight: 650;
+    }
+
+    .sub {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .wrap {
+      flex: 1;
+      display: flex;
+      gap: 14px;
+      padding: 14px;
+      min-height: 0;
+    }
+
+    .left {
+      flex: 0 0 340px;
+      min-width: 0;
+      max-height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .card {
+      background: rgba(0, 0, 0, 0.20);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+
+    input[type="range"] {
+      width: 180px;
+    }
+
+    .value {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    button {
+      margin-top: 12px;
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .row {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: #e8e8e8;
+    }
+
+    .main-visual {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      overscroll-behavior: contain;
+    }
+
+    /* Fixed comfortable heights (viewport-relative); column scrolls if the stack is taller than the window */
+    #graph {
+      flex: 0 0 auto;
+      width: 100%;
+      height: clamp(280px, 36vh, 520px);
+      min-height: 280px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    #cadPanel {
+      flex: 0 0 auto;
+      width: 100%;
+      height: clamp(300px, 40vh, 580px);
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+    }
+
+    .cad-header {
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #94a3b8;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .cad-header b {
+      color: #e2e8f0;
+    }
+
+    .cad-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .cad-header-text {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .cad-zoom-btns {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .cad-zoom-btn {
+      width: 36px;
+      height: 32px;
+      margin: 0;
+      padding: 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(37, 99, 235, 0.35);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .cad-zoom-btn:hover {
+      background: rgba(37, 99, 235, 0.55);
+    }
+
+    .cad-zoom-btn:active {
+      transform: scale(0.96);
+    }
+
+    #cadCanvasHost {
+      flex: 1;
+      min-height: 200px;
+      position: relative;
+    }
+
+    #cadCanvasHost canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    #cadStatus {
+      padding: 6px 12px 8px;
+      font-size: 11px;
+      color: #93c5fd;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      flex-shrink: 0;
+      line-height: 1.35;
+    }
+
+    #resultsChartPanel {
+      flex: 0 0 auto;
+      width: 100%;
+      height: clamp(280px, 32vh, 480px);
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.14);
+      overflow: hidden;
+    }
+
+    .results-chart-header {
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #94a3b8;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .results-chart-header b {
+      color: #e2e8f0;
+    }
+
+    .results-chart-body {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+      gap: 8px;
+      padding: 8px 10px 10px;
+    }
+
+    @media (max-width: 1100px) {
+      .results-chart-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .results-chart-cell {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .results-chart-caption {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #64748b;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+
+    .results-chart-canvas-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 160px;
+    }
+
+    .results-chart-canvas-wrap canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .results-line-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.45;
+      padding: 12px;
+      pointer-events: none;
+    }
+
+    .results-line-placeholder.hidden {
+      display: none;
+    }
+
+    .seq {
+      margin-top: 12px;
+      max-height: 200px;
+      overflow: auto;
+      font-size: 12px;
+      color: #dbeafe;
+      line-height: 1.35;
+      padding-left: 12px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      color: #e5e7eb;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .mini {
+      font-size: 11px;
+      color: #93c5fd;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    .stat {
+      font-size: 11px;
+      color: #a78bfa;
+      margin-top: 6px;
+      font-variant-numeric: tabular-nums;
+      display: none;
+    }
+
+    .stat.visible {
+      display: block;
+    }
+
+    .algo-group {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .algo-group .title {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .algo-opt {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .algo-opt input {
+      margin: 0;
+      cursor: pointer;
+    }
+
+    #gaSettings {
+      display: none;
+      margin-top: 4px;
+    }
+
+    #gaSettings.show {
+      display: block;
+    }
+
+    .value-mut,
+    .value-elite {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .btn-row button {
+      flex: 0 0 auto;
+    }
+
+    #noiseTestStats {
+      color: #7dd3fc;
+    }
+
+    .card-testing {
+      border-color: rgba(251, 191, 36, 0.28);
+      background: linear-gradient(165deg, rgba(251, 191, 36, 0.09) 0%, rgba(0, 0, 0, 0.22) 55%);
+    }
+
+    .card-testing .section-title {
+      font-size: 11px;
+      color: #fcd34d;
+      margin-bottom: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card-testing .mini {
+      color: #a8a29e;
+    }
+
+    #branchingStatusLine {
+      font-size: 11px;
+      color: #d6d3d1;
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+
+    details.adv-cal {
+      margin-top: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0 10px 8px;
+    }
+
+    details.adv-cal>summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      padding: 10px 0 6px;
+      user-select: none;
+    }
+
+    details.adv-cal>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.adv-cal>summary::after {
+      content: ' ▶';
+      font-size: 10px;
+      opacity: 0.7;
+    }
+
+    details.adv-cal[open]>summary::after {
+      content: ' ▼';
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Optimal Disassembly Sequence Planning</h1>
+    <div class="sub">Gearbox knowledge graph + risk-aware removal costs. Plan a <b>disassembly sequence</b> to your goal
+      with <b>Dijkstra</b> (minimum total cost for this model) or <b>Genetic algorithm</b> (evolved priorities). Adjust
+      environment, then <b>Recompute sequence</b>.</div>
+  </header>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="card card-planning">
+        <div class="pill">Data: `build_data.json`</div>
+
+        <div class="algo-group">
+          <div class="title">Planning method</div>
+          <label class="algo-opt">
+            <input type="radio" name="algo" id="algoDijkstra" value="dijkstra" checked />
+            <span><b>Dijkstra</b> — shortest path on removal states (optimal total cost)</span>
+          </label>
+          <label class="algo-opt">
+            <input type="radio" name="algo" id="algoGa" value="ga" />
+            <span><b>Genetic algorithm</b> — evolve per-node weights; pick max weight among available</span>
+          </label>
+        </div>
+
+        <label>
+          <span>Goal node</span>
+          <span style="min-width: 140px;">
+            <select id="goalSelect"></select>
+          </span>
+        </label>
+
+        <div class="algo-group">
+          <div class="title">Environment & condition</div>
+          <label>
+            <span>Service life (years)</span>
+            <span class="value" id="lifeVal">5.0</span>
+          </label>
+          <input id="serviceYears" type="range" min="0" max="30" step="0.5" value="5" />
+          <label>
+            <span>Humidity (%)</span>
+            <span class="value" id="humVal">55</span>
+          </label>
+          <input id="humidity" type="range" min="10" max="100" step="1" value="55" />
+          <label>
+            <span>Storage</span>
+            <span style="min-width:140px;">
+              <select id="storageType">
+                <option value="indoor">Indoor controlled</option>
+                <option value="warehouse">Warehouse</option>
+                <option value="outdoor">Outdoor</option>
+                <option value="coastal">Coastal/marine</option>
+              </select>
+            </span>
+          </label>
+          <label>
+            <span>Rust protection</span>
+            <span style="min-width:140px;">
+              <select id="preservation">
+                <option value="good">Good preservation</option>
+                <option value="partial">Partial protection</option>
+                <option value="none">No preservation</option>
+              </select>
+            </span>
+          </label>
+          <div class="mini" id="envSummary"></div>
+        </div>
+
+        <div id="gaSettings">
+          <hr style="border:0;border-top:1px solid rgba(255,255,255,0.08);margin:14px 0;" />
+          <div class="mini" style="color:#94a3b8;line-height:1.45;">
+            GA uses <b>automatic</b> population, generations, and mutation strength from graph size (same idea as the
+            Python script’s defaults). Wear on fasteners is always on; model exponents match the offline
+            <code>algorithm.py</code> defaults.
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="button" id="recomputeBtn">Recompute sequence</button>
+        </div>
+
+        <div class="hint" id="algoHint"></div>
+
+        <div class="stat" id="gaStats"></div>
+        <div class="seq" id="sequenceBox"></div>
+      </div>
+
+      <div class="card card-testing">
+        <div class="section-title">Benchmarks &amp; robustness testing</div>
+        <label>
+          <span>Branching risk benchmark</span>
+          <span style="min-width:140px;">
+            <select id="branchingRiskMode">
+              <option value="off" selected>Off (normal model)</option>
+              <option value="on">On (A-vs-B trap)</option>
+            </select>
+          </span>
+        </label>
+        <div class="mini">
+          On: Path A (<code>C11SX,C11DX,C12,C13,C14</code>) looks easy early but can make final bearing removal risky
+          unless Path B (<code>F3SX,F3DX</code>) is done early.
+        </div>
+        <div id="branchingStatusLine"></div>
+
+        <div class="btn-row" style="margin-top:12px;">
+          <button type="button" id="noiseTestBtn"
+            title="Monte Carlo: ±10% on corrosion &amp; removal torque; compare fixed Dijkstra vs GA plans">
+            Noise test (±10%)
+          </button>
+        </div>
+        <div class="stat" id="noiseTestStats"></div>
+      </div>
+    </div>
+    <div class="main-visual">
+      <div id="graph"></div>
+      <div id="cadPanel">
+        <div class="cad-header">
+          <div class="cad-header-row">
+            <div class="cad-header-text">
+              <b>3D CAD</b> (Blender → glTF) · <b>Click</b> a part to set <b>goal</b> (components) or focus fasteners on
+              the graph · Sequence step colours match the graph · <b>Zoom</b>: <b>+</b> / <b>−</b> (wheel does not zoom)
+            </div>
+            <div class="cad-zoom-btns">
+              <button type="button" class="cad-zoom-btn" id="cadZoomIn" title="Zoom in">+</button>
+              <button type="button" class="cad-zoom-btn" id="cadZoomOut" title="Zoom out">−</button>
+            </div>
+          </div>
+        </div>
+        <div id="cadCanvasHost"></div>
+        <div id="cadStatus" class="mini">Loading viewer…</div>
+      </div>
+
+      <div id="resultsChartPanel">
+        <div class="results-chart-header">
+          <b>Result charts</b> · total plan cost <code>Σ</code> (effective torque / <i>p</i>) — nominal bars update with
+          <b>Recompute</b>; trial lines appear after <b>Noise test</b>.
+        </div>
+        <div class="results-chart-body">
+          <div class="results-chart-cell">
+            <div class="results-chart-caption">Nominal (current settings)</div>
+            <div class="results-chart-canvas-wrap">
+              <canvas id="resultsBarCanvas" aria-label="Bar chart of nominal plan costs"></canvas>
+            </div>
+          </div>
+          <div class="results-chart-cell">
+            <div class="results-chart-caption">Noise test · per trial</div>
+            <div class="results-chart-canvas-wrap">
+              <canvas id="resultsLineCanvas" aria-label="Line chart of noisy cost samples"></canvas>
+              <div id="resultsLinePlaceholder" class="results-line-placeholder">
+                Run <b>Noise test (±10%)</b> in the left panel to plot Monte Carlo costs for the fixed Dijkstra vs GA
+                sequences.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const EPS = 1e-6;
+
+    function clamp01(x) { return Math.max(0, Math.min(1, x)); }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function colorForProb(p) {
+      // p=1 -> green, p=0 -> red
+      const t = clamp01(p);
+      const r = Math.round(lerp(220, 34, t));   // red->green
+      const g = Math.round(lerp(38, 197, t));
+      const b = Math.round(lerp(59, 94, t));
+      return `rgba(${r},${g},${b},0.95)`;
+    }
+
+    function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+
+    function storageMultiplier(kind) {
+      if (kind === 'coastal') return 1.35;
+      if (kind === 'outdoor') return 1.20;
+      if (kind === 'warehouse') return 1.05;
+      return 1.00;
+    }
+
+    function preservationMultiplier(kind) {
+      if (kind === 'none') return 1.25;
+      if (kind === 'partial') return 1.08;
+      return 0.90;
+    }
+
+    /** Maps rust protection tier to an implicit observed-rust level (replaces a separate slider). */
+    function observedRustFromPreservation(preservation) {
+      if (preservation === 'none') return 0.38;
+      if (preservation === 'partial') return 0.22;
+      return 0.12;
+    }
+
+    function buildEnvContext(params) {
+      const humidityNorm = clamp((params.humidity - 40) / 60, 0, 1);
+      const ageNorm = clamp(params.serviceYears / 20, 0, 1);
+      const rustNorm = clamp(params.observedRust, 0, 1);
+      const storageMult = storageMultiplier(params.storageType);
+      const preservMult = preservationMultiplier(params.preservation);
+      const corrosionScale = clamp((1 + 0.45 * humidityNorm + 0.35 * ageNorm + 0.65 * rustNorm) * storageMult * preservMult, 0.6, 3.0);
+      const seizureAdd = clamp(0.12 * humidityNorm + 0.08 * ageNorm + 0.20 * rustNorm, 0, 0.4);
+      return { humidityNorm, ageNorm, rustNorm, storageMult, preservMult, corrosionScale, seizureAdd };
+    }
+
+    function createBranchingRiskModel(data, params) {
+      const enabled = params.branchingRiskMode === 'on';
+      const nodeList = data.nodes || [];
+      const idToIdx = {};
+      for (let i = 0; i < nodeList.length; i++) idToIdx[nodeList[i].id] = i;
+
+      const pathAIds = ['C11SX', 'C11DX', 'C12', 'C13', 'C14'];
+      const pathBIds = ['F3SX', 'F3DX'];
+      const finalBearingId = 'C1';
+
+      const pathAIdx = pathAIds.map(id => idToIdx[id]).filter(i => i !== undefined);
+      const pathBIdx = pathBIds.map(id => idToIdx[id]).filter(i => i !== undefined);
+      const pathAIdSet = new Set(pathAIds);
+      const pathBIdSet = new Set(pathBIds);
+
+      function state(removedMask) {
+        if (!enabled) {
+          return { pathARemovedCount: 0, pathBUnlocked: false, trapArmed: false };
+        }
+        let pathARemovedCount = 0;
+        for (const idx of pathAIdx) {
+          if (((removedMask >> idx) & 1) === 1) pathARemovedCount++;
+        }
+        let pathBUnlocked = pathBIdx.length > 0;
+        for (const idx of pathBIdx) {
+          if (((removedMask >> idx) & 1) !== 1) {
+            pathBUnlocked = false;
+            break;
+          }
+        }
+        const trapArmed = !pathBUnlocked && pathARemovedCount >= 5;
+        return { pathARemovedCount, pathBUnlocked, trapArmed };
+      }
+
+      function multipliers(nodeRec, removedMask) {
+        if (!enabled || !nodeRec) return { pMult: 1.0, fMult: 1.0 };
+        const id = nodeRec.id;
+        const s = state(removedMask);
+
+        // Path A: attractive short-term steps before B is unlocked.
+        if (pathAIdSet.has(id) && !s.pathBUnlocked) {
+          return { pMult: 1.06, fMult: 0.74 };
+        }
+
+        // Path B: difficult short-term unlock steps.
+        if (pathBIdSet.has(id)) {
+          return { pMult: 0.88, fMult: 1.65 };
+        }
+
+        // If A was over-committed before unlocking B, final bearing becomes risky.
+        if (id === finalBearingId && s.trapArmed) {
+          return { pMult: 0.32, fMult: 2.8 };
+        }
+
+        // If B is unlocked, remaining work becomes safer/easier on average.
+        if (s.pathBUnlocked && id !== finalBearingId && !pathBIdSet.has(id)) {
+          return { pMult: 1.08, fMult: 0.90 };
+        }
+
+        // Final bearing receives a safety bonus when B is unlocked first.
+        if (id === finalBearingId && s.pathBUnlocked && !s.trapArmed) {
+          return { pMult: 1.22, fMult: 0.72 };
+        }
+
+        return { pMult: 1.0, fMult: 1.0 };
+      }
+
+      return { enabled, state, multipliers };
+    }
+
+    function computePForNode(nodeRec, ctx) {
+      // ctx contains:
+      //   compA, compB, wearK, useWear
+      //   wearStateByPartCode: { [partCode]: number }
+      //   compTempMin, compTempMax
+      if (!nodeRec.partCode) return 0.5;
+
+      if (nodeRec.kind === 'C') {
+        const comp = nodeRec.component;
+        if (!comp) return 0.5;
+        const tempNorm = (comp.temperature - ctx.compTempMin) / Math.max(1e-6, (ctx.compTempMax - ctx.compTempMin));
+        // success probability decreases with corrosion and (scaled) temperature
+        // p = exp(-a*corr) * exp(-b*tempNorm)
+        const p = Math.exp(-ctx.compA * comp.corrosion_level) * Math.exp(-ctx.compB * tempNorm);
+        return clamp01(p);
+      } else {
+        const fastener = nodeRec.fastener || nodeRec.tool;
+        if (!fastener) return 0.5;
+        const p0 = fastener.tool_success_rate
+          * (1 - clamp01(fastener.bolt_seizure_probability))
+          * (1 - clamp01(fastener.bearing_jamming_probability));
+        const wearState = ctx.wearStateByPartCode[nodeRec.partCode] || 0;
+        const p = p0 * (ctx.useWear ? Math.exp(-ctx.wearK * wearState) : 1.0);
+        return clamp01(p);
+      }
+    }
+
+    function topoAvailable(removed, preds, remainingSet) {
+      const avail = [];
+      for (const v of remainingSet) {
+        if (removed.has(v)) continue;
+        const ps = preds[v] || new Set();
+        let ok = true;
+        for (const p of ps) {
+          if (!removed.has(p)) { ok = false; break; }
+        }
+        if (ok) avail.push(v);
+      }
+      return avail;
+    }
+
+    class MinHeap {
+      constructor() { this.arr = []; }
+      push(item) {
+        this.arr.push(item);
+        this._siftUp(this.arr.length - 1);
+      }
+      _siftUp(i) {
+        while (i > 0) {
+          const p = (i - 1) >> 1;
+          if (this.arr[p].dist <= this.arr[i].dist) break;
+          const t = this.arr[p]; this.arr[p] = this.arr[i]; this.arr[i] = t;
+          i = p;
+        }
+      }
+      pop() {
+        if (this.arr.length === 0) return null;
+        const top = this.arr[0];
+        const last = this.arr.pop();
+        if (this.arr.length > 0) {
+          this.arr[0] = last;
+          this._siftDown(0);
+        }
+        return top;
+      }
+      _siftDown(i) {
+        const n = this.arr.length;
+        while (true) {
+          const l = i * 2 + 1, r = l + 1;
+          let m = i;
+          if (l < n && this.arr[l].dist < this.arr[m].dist) m = l;
+          if (r < n && this.arr[r].dist < this.arr[m].dist) m = r;
+          if (m === i) break;
+          const t = this.arr[m]; this.arr[m] = this.arr[i]; this.arr[i] = t;
+          i = m;
+        }
+      }
+      get size() { return this.arr.length; }
+    }
+
+    function dijkstraDSP(data, goal, params) {
+      // Bitmask over nodes (assumes <= 32 nodes, which holds for this gearbox graph = 28).
+      const nodeList = data.nodes.slice();
+      const n = nodeList.length;
+      if (n > 31) {
+        return { sequence: [], pAtSelection: {}, reason: 'Too many nodes for bitmask Dijkstra in browser' };
+      }
+
+      const idToIdx = {};
+      for (let i = 0; i < n; i++) idToIdx[nodeList[i].id] = i;
+
+      const goalIdx = idToIdx[goal];
+      if (goalIdx === undefined) return { sequence: [], pAtSelection: {}, reason: 'Goal not found' };
+
+      // Predecessor mask
+      const predsMask = new Array(n).fill(0);
+      for (const e of data.edges) {
+        const a = idToIdx[e.from];
+        const b = idToIdx[e.to];
+        if (a === undefined || b === undefined) continue;
+        predsMask[b] |= (1 << a);
+      }
+
+      const nodeById = {};
+      for (const nn of nodeList) nodeById[nn.id] = nn;
+
+      // Precompute tool wear per fastener partCode (for wear accumulation)
+      const wearK = params.wearK;
+      const useWear = params.useWear;
+      const env = buildEnvContext(params);
+      const branchingRisk = createBranchingRiskModel(data, params);
+
+      const removedWearCountByPartCode = {}; // computed per mask on the fly (small n)
+
+      const compTempMin = data.componentTempMin;
+      const compTempMax = data.componentTempMax;
+
+      // tool temperature normalization (optional; only if tool.temperature exists)
+      let toolTempMin = Infinity;
+      let toolTempMax = -Infinity;
+      for (let i = 0; i < n; i++) {
+        const rec = nodeList[i];
+        const f = (rec && rec.kind === 'F') ? (rec.fastener || rec.tool) : null;
+        if (f && typeof f.temperature === 'number') {
+          toolTempMin = Math.min(toolTempMin, f.temperature);
+          toolTempMax = Math.max(toolTempMax, f.temperature);
+        }
+      }
+      if (!isFinite(toolTempMin)) { toolTempMin = 0; toolTempMax = 1; }
+
+      function getTaskDifficulty(nodeRec) {
+        if (!nodeRec) return 0;
+        if (typeof nodeRec.taskDifficulty === 'number') return nodeRec.taskDifficulty;
+        const code = (nodeRec.taskCode && String(nodeRec.taskCode).trim()) ? String(nodeRec.taskCode).trim() : null;
+        if (code && data.taskDifficultyByCode && typeof data.taskDifficultyByCode[code] === 'number') {
+          return data.taskDifficultyByCode[code];
+        }
+        return 0;
+      }
+
+      function getToolCode(nodeRec) {
+        if (!nodeRec) return null;
+        // Use taskCode as the shared-resource identity (requested).
+        // This means repeated tasks (e.g. many 'un' unscrew operations) can "heat up" the resource.
+        if (nodeRec.taskCode && String(nodeRec.taskCode).trim()) return String(nodeRec.taskCode).trim();
+        return null;
+      }
+
+      function heatPenaltyFor(nodeRec, lastToolCode, heatLevel) {
+        if (!nodeRec || nodeRec.kind !== 'F') return 0;
+        const t = getToolCode(nodeRec);
+        if (!t || !lastToolCode) return 0;
+        return (t === lastToolCode) ? heatLevel : 0;
+      }
+
+      function applyHeatAndDifficultyToP(pBase, nodeRec, lastToolCode, heatLevel) {
+        const heatPen = heatPenaltyFor(nodeRec, lastToolCode, heatLevel);
+        const diff = getTaskDifficulty(nodeRec);
+        const p = pBase
+          * Math.exp(-params.heatP * heatPen)
+          * Math.exp(-params.diffP * diff);
+        return clamp01(p);
+      }
+
+      function applyHeatAndDifficultyToForce(forceBase, nodeRec, lastToolCode, heatLevel) {
+        const heatPen = heatPenaltyFor(nodeRec, lastToolCode, heatLevel);
+        const diff = getTaskDifficulty(nodeRec);
+        const f = forceBase
+          * (1 + params.heatF * heatPen)
+          * (1 + params.diffCostK * diff);
+        return Math.max(EPS, f);
+      }
+
+      function stepHeatUpdate(nodeRec, lastToolCode, heatLevel) {
+        if (!nodeRec) return { lastToolCode, heatLevel };
+        if (nodeRec.kind === 'F') {
+          const t = getToolCode(nodeRec);
+          if (!t) return { lastToolCode, heatLevel };
+          if (lastToolCode && t === lastToolCode) {
+            return { lastToolCode: t, heatLevel: Math.min(params.heatMax, heatLevel + 1) };
+          }
+          return { lastToolCode: t, heatLevel: 1 };
+        }
+        // component removal cools the tool a bit
+        return { lastToolCode, heatLevel: Math.max(0, heatLevel - params.heatCool) };
+      }
+
+      function pForNodeIndex(i, removedMask, lastToolCode, heatLevel) {
+        const nodeRec = nodeList[i];
+        if (!nodeRec.partCode) return 0.5;
+
+        if (nodeRec.kind === 'C') {
+          const comp = nodeRec.component;
+          if (!comp) return 0.5;
+          const tempNorm = (comp.temperature - compTempMin) / Math.max(1e-6, (compTempMax - compTempMin));
+          const effCorr = clamp01(comp.corrosion_level * env.corrosionScale);
+          const pBase = Math.exp(-params.compA * effCorr) * Math.exp(-params.compB * tempNorm);
+          const pAdj = applyHeatAndDifficultyToP(pBase, nodeRec, lastToolCode, heatLevel);
+          const risk = branchingRisk.multipliers(nodeRec, removedMask);
+          return clamp01(pAdj * risk.pMult);
+        }
+
+        // Fastener
+        const tool = nodeRec.tool;
+        if (!tool) return 0.5;
+        const seizure = clamp01((tool.bolt_seizure_probability || 0) + env.seizureAdd);
+        const jamming = clamp01((tool.bearing_jamming_probability || 0) + 0.5 * env.seizureAdd);
+        const p0 = tool.tool_success_rate
+          * (1 - seizure)
+          * (1 - jamming);
+
+        // Tool temperature condition factor (same compB as components)
+        const temp = (typeof tool.temperature === 'number') ? tool.temperature : null;
+        let tempNormTool = 0.5;
+        if (temp !== null) {
+          tempNormTool = (temp - toolTempMin) / Math.max(1e-6, (toolTempMax - toolTempMin));
+        }
+        const tempFactor = Math.exp(-params.compB * tempNormTool);
+
+        // Wear state for this node's partCode = tool_wear * (#removed fastener nodes with same partCode)
+        if (!useWear) {
+          const pAdj = applyHeatAndDifficultyToP(p0 * tempFactor, nodeRec, lastToolCode, heatLevel);
+          const risk = branchingRisk.multipliers(nodeRec, removedMask);
+          return clamp01(pAdj * risk.pMult);
+        }
+
+        const partCode = nodeRec.partCode;
+        let count = 0;
+        for (let j = 0; j < n; j++) {
+          if (((removedMask >> j) & 1) === 1) {
+            const rec = nodeList[j];
+            if (rec.kind === 'F' && rec.partCode === partCode) count++;
+          }
+        }
+        const wearState = (tool.tool_wear || 0) * count;
+        const pBase = p0 * tempFactor * Math.exp(-wearK * Math.max(0, wearState));
+        const pAdj = applyHeatAndDifficultyToP(pBase, nodeRec, lastToolCode, heatLevel);
+        const risk = branchingRisk.multipliers(nodeRec, removedMask);
+        return clamp01(pAdj * risk.pMult);
+      }
+
+      const effectiveForceNm = makeEffectiveForceNmForIndex(data, params);
+
+      const MAX_STATES = 60000; // prevent browser freeze
+      const goalBit = (1 << goalIdx);
+      const initMask = 0;
+
+      const dist = new Map();
+      const parent = new Map(); // stateKey -> {prevKey, viaIdx, prevMask, prevLastToolCode, prevHeatLevel}
+
+      const heap = new MinHeap();
+      function stateKey(mask, lastToolCode, heatLevel) {
+        return `${mask}|${lastToolCode || ''}|${heatLevel | 0}`;
+      }
+
+      const initLastTool = null;
+      const initHeat = 0;
+      const initKey = stateKey(initMask, initLastTool, initHeat);
+      dist.set(initKey, 0);
+      parent.set(initKey, null);
+      heap.push({ mask: initMask, lastToolCode: initLastTool, heatLevel: initHeat, dist: 0 });
+
+      let expanded = 0;
+      while (heap.size > 0) {
+        const cur = heap.pop();
+        const mask = cur.mask;
+        const lastToolCode = cur.lastToolCode || null;
+        const heatLevel = cur.heatLevel | 0;
+        const curKey = stateKey(mask, lastToolCode, heatLevel);
+        const dcur = cur.dist;
+        if (dcur !== dist.get(curKey)) continue;
+
+        if ((mask & goalBit) !== 0) {
+          // reconstruct
+          const seqIdx = [];
+          let curK = curKey;
+          while (parent.get(curK) !== null) {
+            const info = parent.get(curK);
+            seqIdx.push(info.viaIdx);
+            curK = info.prevKey;
+          }
+          seqIdx.reverse();
+          const sequence = seqIdx.map(i => nodeList[i].id);
+
+          // compute p along path using previous masks
+          const pAtSelection = {};
+          let prevMask = 0;
+          let prevLastToolCode = null;
+          let prevHeatLevel = 0;
+          for (const idx of seqIdx) {
+            const p = pForNodeIndex(idx, prevMask, prevLastToolCode, prevHeatLevel);
+            pAtSelection[nodeList[idx].id] = p;
+            const nodeRec = nodeList[idx];
+            const next = stepHeatUpdate(nodeRec, prevLastToolCode, prevHeatLevel);
+            prevLastToolCode = next.lastToolCode;
+            prevHeatLevel = next.heatLevel;
+            prevMask |= (1 << idx);
+          }
+
+          return { sequence, pAtSelection, reason: null, expanded };
+        }
+
+        expanded++;
+        if (expanded > MAX_STATES) break;
+
+        // available nodes
+        const available = [];
+        for (let i = 0; i < n; i++) {
+          if (((mask >> i) & 1) === 1) continue; // already removed
+          const ok = (predsMask[i] & mask) === predsMask[i];
+          if (ok) available.push(i);
+        }
+        if (available.length === 0) continue;
+
+        for (const i of available) {
+          const nodeRec = nodeList[i];
+          const p = pForNodeIndex(i, mask, lastToolCode, heatLevel);
+          const baseForce = effectiveForceNm(i, mask, lastToolCode, heatLevel);
+          const risk = branchingRisk.multipliers(nodeRec, mask);
+          const safeForce = Math.max(EPS, baseForce * risk.fMult);
+          const edgeCost = safeForce / Math.max(EPS, p);
+          const newMask = mask | (1 << i);
+          const nextHeat = stepHeatUpdate(nodeRec, lastToolCode, heatLevel);
+          const newKey = stateKey(newMask, nextHeat.lastToolCode, nextHeat.heatLevel);
+          const nd = dcur + edgeCost;
+          const old = dist.get(newKey);
+          if (old === undefined || nd < old) {
+            dist.set(newKey, nd);
+            parent.set(newKey, { prevKey: curKey, prevMask: mask, viaIdx: i });
+            heap.push({ mask: newMask, lastToolCode: nextHeat.lastToolCode, heatLevel: nextHeat.heatLevel, dist: nd });
+          }
+        }
+      }
+
+      return { sequence: [], pAtSelection: {}, reason: 'Dijkstra search ran out of state budget (increase MAX_STATES in code if needed)', expanded };
+    }
+
+    function mulberry32(a) {
+      return function () {
+        let t = (a += 0x6d2b79f5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    /** Independent U[0.9, 1.1] factors on component corrosion_level and fastener removal_force_Nm (measurement noise). */
+    function buildNoisyDataCopy(data, rng) {
+      const nodes = data.nodes.map((rec) => {
+        const copy = { ...rec };
+        if (rec.kind === 'C' && rec.component) {
+          copy.component = { ...rec.component };
+          const mult = 0.9 + 0.2 * rng();
+          const cl = (rec.component.corrosion_level != null) ? rec.component.corrosion_level : 0;
+          copy.component.corrosion_level = Math.max(0, cl * mult);
+        }
+        if (rec.kind === 'F') {
+          const src = rec.fastener || rec.tool;
+          if (src && typeof src.removal_force_Nm === 'number') {
+            const mult = 0.9 + 0.2 * rng();
+            const fat = { ...src, removal_force_Nm: Math.max(EPS, src.removal_force_Nm * mult) };
+            copy.fastener = rec.fastener ? fat : null;
+            copy.tool = rec.tool ? fat : null;
+          }
+        }
+        return copy;
+      });
+      return { ...data, nodes };
+    }
+
+    function summarizeCostSamples(values) {
+      const n = values.length;
+      if (!n) return { mean: NaN, std: NaN, p95: NaN };
+      let sum = 0;
+      for (const x of values) sum += x;
+      const mean = sum / n;
+      let v = 0;
+      for (const x of values) {
+        const d = x - mean;
+        v += d * d;
+      }
+      const std = Math.sqrt(v / n);
+      const sorted = values.slice().sort((a, b) => a - b);
+      const p95 = sorted[Math.min(n - 1, Math.max(0, Math.floor(0.95 * (n - 1))))];
+      return { mean, std, p95 };
+    }
+
+    function makePForNodeIndex(data, params) {
+      const nodeList = data.nodes;
+      const n = nodeList.length;
+      const compTempMin = data.componentTempMin;
+      const compTempMax = data.componentTempMax;
+      const env = buildEnvContext(params);
+      const branchingRisk = createBranchingRiskModel(data, params);
+
+      let toolTempMin = Infinity;
+      let toolTempMax = -Infinity;
+      for (let i = 0; i < n; i++) {
+        const rec = nodeList[i];
+        const f = (rec && rec.kind === 'F') ? (rec.fastener || rec.tool) : null;
+        if (f && typeof f.temperature === 'number') {
+          toolTempMin = Math.min(toolTempMin, f.temperature);
+          toolTempMax = Math.max(toolTempMax, f.temperature);
+        }
+      }
+      if (!isFinite(toolTempMin)) { toolTempMin = 0; toolTempMax = 1; }
+
+      const wearK = params.wearK;
+      const useWear = params.useWear;
+
+      function getTaskDifficulty(nodeRec) {
+        if (!nodeRec) return 0;
+        if (typeof nodeRec.taskDifficulty === 'number') return nodeRec.taskDifficulty;
+        const code = (nodeRec.taskCode && String(nodeRec.taskCode).trim()) ? String(nodeRec.taskCode).trim() : null;
+        if (code && data.taskDifficultyByCode && typeof data.taskDifficultyByCode[code] === 'number') {
+          return data.taskDifficultyByCode[code];
+        }
+        return 0;
+      }
+
+      function getToolCode(nodeRec) {
+        if (!nodeRec) return null;
+        if (nodeRec.taskCode && String(nodeRec.taskCode).trim()) return String(nodeRec.taskCode).trim();
+        return null;
+      }
+
+      function heatPenaltyFor(nodeRec, lastToolCode, heatLevel) {
+        if (!nodeRec || nodeRec.kind !== 'F') return 0;
+        const t = getToolCode(nodeRec);
+        if (!t || !lastToolCode) return 0;
+        return (t === lastToolCode) ? heatLevel : 0;
+      }
+
+      function applyHeatAndDifficultyToP(pBase, nodeRec, lastToolCode, heatLevel) {
+        const heatPen = heatPenaltyFor(nodeRec, lastToolCode, heatLevel);
+        const diff = getTaskDifficulty(nodeRec);
+        const p = pBase
+          * Math.exp(-params.heatP * heatPen)
+          * Math.exp(-params.diffP * diff);
+        return clamp01(p);
+      }
+
+      return function pForNodeIndex(i, removedMask, lastToolCode = null, heatLevel = 0) {
+        const nodeRec = nodeList[i];
+        if (!nodeRec.partCode) return 0.5;
+
+        if (nodeRec.kind === 'C') {
+          const comp = nodeRec.component;
+          if (!comp) return 0.5;
+          const tempNorm = (comp.temperature - compTempMin) / Math.max(1e-6, (compTempMax - compTempMin));
+          const effCorr = clamp01(comp.corrosion_level * env.corrosionScale);
+          const pBase = Math.exp(-params.compA * effCorr) * Math.exp(-params.compB * tempNorm);
+          const pAdj = applyHeatAndDifficultyToP(pBase, nodeRec, lastToolCode, heatLevel);
+          const risk = branchingRisk.multipliers(nodeRec, removedMask);
+          return clamp01(pAdj * risk.pMult);
+        }
+
+        const fastener = nodeRec.fastener || nodeRec.tool;
+        if (!fastener) return 0.5;
+        const seizure = clamp01((fastener.bolt_seizure_probability || 0) + env.seizureAdd);
+        const jamming = clamp01((fastener.bearing_jamming_probability || 0) + 0.5 * env.seizureAdd);
+        const p0 = fastener.tool_success_rate
+          * (1 - seizure)
+          * (1 - jamming);
+
+        const temp = (typeof fastener.temperature === 'number') ? fastener.temperature : null;
+        let tempNormTool = 0.5;
+        if (temp !== null) {
+          tempNormTool = (temp - toolTempMin) / Math.max(1e-6, (toolTempMax - toolTempMin));
+        }
+        const tempFactor = Math.exp(-params.compB * tempNormTool);
+
+        if (!useWear) {
+          const pAdj = applyHeatAndDifficultyToP(p0 * tempFactor, nodeRec, lastToolCode, heatLevel);
+          const risk = branchingRisk.multipliers(nodeRec, removedMask);
+          return clamp01(pAdj * risk.pMult);
+        }
+
+        const partCode = nodeRec.partCode;
+        let count = 0;
+        for (let j = 0; j < n; j++) {
+          if (((removedMask >> j) & 1) === 1) {
+            const rec = nodeList[j];
+            if (rec.kind === 'F' && rec.partCode === partCode) count++;
+          }
+        }
+        const wearState = (fastener.tool_wear || 0) * count;
+        const pBase = p0 * tempFactor * Math.exp(-wearK * Math.max(0, wearState));
+        const pAdj = applyHeatAndDifficultyToP(pBase, nodeRec, lastToolCode, heatLevel);
+        const risk = branchingRisk.multipliers(nodeRec, removedMask);
+        return clamp01(pAdj * risk.pMult);
+      };
+    }
+
+    /**
+     * Nominal removal_force_Nm from data, scaled by live environment so harsh conditions
+     * require higher torque (seizure, jamming, corrosion stress, accumulated wear).
+     * Used with p in step cost = effectiveForce / p.
+     */
+    function makeEffectiveForceNmForIndex(data, params) {
+      const nodeList = data.nodes;
+      const n = nodeList.length;
+      const env = buildEnvContext(params);
+      const useWear = params.useWear;
+      const branchingRisk = createBranchingRiskModel(data, params);
+
+      function getTaskDifficulty(nodeRec) {
+        if (!nodeRec) return 0;
+        if (typeof nodeRec.taskDifficulty === 'number') return nodeRec.taskDifficulty;
+        const code = (nodeRec.taskCode && String(nodeRec.taskCode).trim()) ? String(nodeRec.taskCode).trim() : null;
+        if (code && data.taskDifficultyByCode && typeof data.taskDifficultyByCode[code] === 'number') {
+          return data.taskDifficultyByCode[code];
+        }
+        return 0;
+      }
+
+      function getToolCode(nodeRec) {
+        if (!nodeRec) return null;
+        if (nodeRec.taskCode && String(nodeRec.taskCode).trim()) return String(nodeRec.taskCode).trim();
+        return null;
+      }
+
+      function heatPenaltyFor(nodeRec, lastToolCode, heatLevel) {
+        if (!nodeRec || nodeRec.kind !== 'F') return 0;
+        const t = getToolCode(nodeRec);
+        if (!t || !lastToolCode) return 0;
+        return (t === lastToolCode) ? heatLevel : 0;
+      }
+
+      function applyHeatAndDifficultyToForce(forceBase, nodeRec, lastToolCode, heatLevel) {
+        const heatPen = heatPenaltyFor(nodeRec, lastToolCode, heatLevel);
+        const diff = getTaskDifficulty(nodeRec);
+        const f = forceBase
+          * (1 + params.heatF * heatPen)
+          * (1 + params.diffCostK * diff);
+        return Math.max(EPS, f);
+      }
+
+      return function effectiveForceNm(i, removedMask, lastToolCode = null, heatLevel = 0) {
+        const nodeRec = nodeList[i];
+
+        if (nodeRec.kind === 'C') {
+          const base = 1.0;
+          const comp = nodeRec.component;
+          let mult = 1.0;
+          if (comp) {
+            const effCorr = clamp01(comp.corrosion_level * env.corrosionScale);
+            const envBond = Math.max(0, env.corrosionScale - 1) + env.seizureAdd;
+            mult = 1 + 0.55 * effCorr + 0.35 * envBond;
+          } else {
+            mult = 1 + 0.25 * (Math.max(0, env.corrosionScale - 1) + env.seizureAdd);
+          }
+          const baseForce = applyHeatAndDifficultyToForce(Math.max(EPS, base * mult), nodeRec, lastToolCode, heatLevel);
+          const risk = branchingRisk.multipliers(nodeRec, removedMask);
+          return Math.max(EPS, baseForce * risk.fMult);
+        }
+
+        const fastener = nodeRec.fastener || nodeRec.tool;
+        const base = (fastener && typeof fastener.removal_force_Nm === 'number') ? fastener.removal_force_Nm : 1.0;
+        if (!fastener) return Math.max(EPS, base);
+
+        const seizure = clamp01((fastener.bolt_seizure_probability || 0) + env.seizureAdd);
+        const jamming = clamp01((fastener.bearing_jamming_probability || 0) + 0.5 * env.seizureAdd);
+        const envBond = Math.max(0, env.corrosionScale - 1) + env.seizureAdd;
+
+        let wearStress = 0;
+        if (useWear) {
+          const partCode = nodeRec.partCode;
+          let count = 0;
+          for (let j = 0; j < n; j++) {
+            if (((removedMask >> j) & 1) === 1) {
+              const rec = nodeList[j];
+              if (rec.kind === 'F' && rec.partCode === partCode) count++;
+            }
+          }
+          wearStress = clamp01((fastener.tool_wear || 0) * count);
+        }
+
+        const K_SEIZ = 0.9;
+        const K_JAM = 0.55;
+        const K_ENV = 0.4;
+        const K_WEAR = 0.5;
+        const mult = 1 + K_SEIZ * seizure + K_JAM * jamming + K_ENV * envBond + K_WEAR * wearStress;
+        const baseForce = applyHeatAndDifficultyToForce(Math.max(EPS, base * mult), nodeRec, lastToolCode, heatLevel);
+        const risk = branchingRisk.multipliers(nodeRec, removedMask);
+        return Math.max(EPS, baseForce * risk.fMult);
+      };
+    }
+
+    function evaluateGreedyWeights(data, goal, params, weightsById) {
+      const nodeList = data.nodes;
+      const n = nodeList.length;
+      const idToIdx = {};
+      for (let i = 0; i < n; i++) idToIdx[nodeList[i].id] = i;
+
+      const goalIdx = idToIdx[goal];
+      if (goalIdx === undefined) {
+        return { ok: false, cost: Infinity, sequence: [], pAtSelection: {}, reason: 'Goal not found' };
+      }
+
+      const predsMask = new Array(n).fill(0);
+      for (const e of data.edges) {
+        const a = idToIdx[e.from];
+        const b = idToIdx[e.to];
+        if (a === undefined || b === undefined) continue;
+        predsMask[b] |= (1 << a);
+      }
+
+      const pForNodeIndex = makePForNodeIndex(data, params);
+      const effectiveForceNm = makeEffectiveForceNmForIndex(data, params);
+      const goalBit = 1 << goalIdx;
+
+      let mask = 0;
+      let lastToolCode = null;
+      let heatLevel = 0;
+      const sequence = [];
+      const pAtSelection = {};
+      let totalCost = 0;
+      const maxSteps = n + 5;
+
+      function getToolCode(nodeRec) {
+        if (!nodeRec) return null;
+        if (nodeRec.taskCode && String(nodeRec.taskCode).trim()) return String(nodeRec.taskCode).trim();
+        return null;
+      }
+
+      function stepHeatUpdate(nodeRec) {
+        if (!nodeRec) return;
+        if (nodeRec.kind === 'F') {
+          const t = getToolCode(nodeRec);
+          if (!t) return;
+          if (lastToolCode && t === lastToolCode) heatLevel = Math.min(params.heatMax, heatLevel + 1);
+          else heatLevel = 1;
+          lastToolCode = t;
+          return;
+        }
+        heatLevel = Math.max(0, heatLevel - params.heatCool);
+      }
+
+      for (let step = 0; step < maxSteps; step++) {
+        if ((mask & goalBit) !== 0) {
+          return { ok: true, cost: totalCost, sequence, pAtSelection, reason: null };
+        }
+
+        const available = [];
+        for (let i = 0; i < n; i++) {
+          if (((mask >> i) & 1) === 1) continue;
+          const ok = (predsMask[i] & mask) === predsMask[i];
+          if (ok) available.push(i);
+        }
+
+        if (available.length === 0) {
+          return { ok: false, cost: Infinity, sequence, pAtSelection, reason: 'No available nodes (stuck)' };
+        }
+
+        let bestIdx = available[0];
+        let bestW = weightsById[nodeList[bestIdx].id] ?? 0;
+        for (let k = 1; k < available.length; k++) {
+          const i = available[k];
+          const w = weightsById[nodeList[i].id] ?? 0;
+          if (w > bestW || (w === bestW && i < bestIdx)) {
+            bestW = w;
+            bestIdx = i;
+          }
+        }
+
+        const p = pForNodeIndex(bestIdx, mask, lastToolCode, heatLevel);
+        const safeForce = effectiveForceNm(bestIdx, mask, lastToolCode, heatLevel);
+        totalCost += safeForce / Math.max(EPS, p);
+
+        const id = nodeList[bestIdx].id;
+        pAtSelection[id] = p;
+        sequence.push(id);
+        mask |= (1 << bestIdx);
+        stepHeatUpdate(nodeList[bestIdx]);
+      }
+
+      return { ok: false, cost: Infinity, sequence, pAtSelection, reason: 'Step limit exceeded' };
+    }
+
+    function randomWeights(nodeIds, rng) {
+      const o = {};
+      for (const id of nodeIds) {
+        o[id] = rng() * 2 - 1;
+      }
+      return o;
+    }
+
+    function blendCrossover(a, b, nodeIds, rng) {
+      const alpha = 0.2 + rng() * 0.6;
+      const out = {};
+      for (const id of nodeIds) {
+        out[id] = alpha * a[id] + (1 - alpha) * b[id];
+      }
+      return out;
+    }
+
+    function mutate(ind, nodeIds, sigma, rng) {
+      const out = { ...ind };
+      for (const id of nodeIds) {
+        if (rng() < 0.2) {
+          out[id] += (rng() + rng() + rng() + rng() - 2) * sigma;
+        }
+      }
+      return out;
+    }
+
+    function geneticAlgorithmDSP(data, goal, params, ga) {
+      const nodeIds = data.nodes.map(n => n.id);
+      const rng = mulberry32(ga.seed >>> 0);
+
+      const pop = Math.max(10, Math.min(200, ga.pop | 0));
+      const gens = Math.max(1, Math.min(500, ga.gens | 0));
+      const eliteN = Math.max(1, Math.floor(pop * ga.eliteFrac));
+
+      let population = [];
+      for (let i = 0; i < pop; i++) {
+        population.push(randomWeights(nodeIds, rng));
+      }
+
+      let bestEver = null;
+      let bestCost = Infinity;
+      let lastGenBest = Infinity;
+
+      for (let g = 0; g < gens; g++) {
+        const scored = population.map(ind => {
+          const ev = evaluateGreedyWeights(data, goal, params, ind);
+          const c = ev.ok ? ev.cost : 1e30;
+          return { cost: c, ind, ev };
+        });
+
+        scored.sort((x, y) => x.cost - y.cost);
+        lastGenBest = scored[0].cost;
+
+        for (const s of scored) {
+          if (s.cost < bestCost) {
+            bestCost = s.cost;
+            bestEver = { weights: { ...s.ind }, ev: s.ev };
+          }
+        }
+
+        const elites = scored.slice(0, eliteN).map(s => ({ ...s.ind }));
+        const next = elites.slice();
+
+        while (next.length < pop) {
+          const a = elites[Math.floor(rng() * elites.length)];
+          const b = elites[Math.floor(rng() * elites.length)];
+          let child = blendCrossover(a, b, nodeIds, rng);
+          child = mutate(child, nodeIds, ga.mutationSigma, rng);
+          next.push(child);
+        }
+        population = next;
+      }
+
+      return {
+        bestCost,
+        bestWeights: bestEver ? bestEver.weights : null,
+        bestEval: bestEver ? bestEver.ev : null,
+        lastGenBest,
+        generations: gens,
+        population: pop,
+      };
+    }
+
+    function computeRelevantNodeCount(data, goalId) {
+      const preds = {};
+      for (const n of data.nodes) preds[n.id] = [];
+      for (const e of data.edges) {
+        if (!preds[e.to]) preds[e.to] = [];
+        preds[e.to].push(e.from);
+      }
+
+      const seen = new Set();
+      const stack = [goalId];
+      while (stack.length) {
+        const cur = stack.pop();
+        if (seen.has(cur)) continue;
+        seen.add(cur);
+        const ps = preds[cur] || [];
+        for (const p of ps) {
+          if (!seen.has(p)) stack.push(p);
+        }
+      }
+      return seen.size;
+    }
+
+    function autoPopulationFromComplexity(nodeCount) {
+      // Larger precedence subgraph -> larger search space.
+      // Simple linear rule with safe bounds for browser runtime.
+      const raw = 20 + 2 * nodeCount;
+      const clamped = Math.max(30, Math.min(200, raw));
+      return clamped - (clamped % 5);
+    }
+
+    function autoGenerationsFromComplexity(nodeCount) {
+      const raw = 30 + 2 * nodeCount;
+      const clamped = Math.max(30, Math.min(300, raw));
+      return clamped - (clamped % 5);
+    }
+
+    function autoMutationFromComplexity(nodeCount) {
+      // Larger graph: slightly larger mutation helps exploration.
+      const v = 0.20 + 0.01 * nodeCount;
+      return Math.max(0.10, Math.min(0.80, Math.round(v * 20) / 20));
+    }
+
+    function makeVisNetwork(graphEl, data) {
+      const nodeById = {};
+      for (const n of data.nodes) nodeById[n.id] = n;
+
+      const initialNodes = data.nodes.map(n => {
+        const fill = 'rgba(59,130,246,0.85)'; // default blue
+        const border = 'rgba(96,165,250,1)';
+        let shape = 'ellipse';
+        if (n.id === 'C1') shape = 'box';
+        else if (n.id.startsWith('F')) shape = 'ellipse';
+        return {
+          id: n.id,
+          label: n.id, // keep short id; UI can show real label in tooltip
+          title: `${n.id}\\n${n.label || ''}\\nkind: ${n.kind}`,
+          shape,
+          color: { background: fill, border },
+          font: { color: '#fff', size: n.id === 'C1' ? 14 : 12 }
+        };
+      });
+
+      const initialEdges = data.edges.map((e, i) => ({
+        id: i,
+        from: e.from,
+        to: e.to,
+        arrows: 'to',
+        color: 'rgba(148,163,184,0.35)',
+      }));
+
+      const ds = {
+        nodes: new vis.DataSet(initialNodes),
+        edges: new vis.DataSet(initialEdges)
+      };
+
+      const options = {
+        physics: { enabled: true, stabilization: { iterations: 200 } },
+        nodes: { borderWidth: 2, shadow: true },
+        edges: { smooth: { type: 'continuous' }, width: 1 }
+      };
+
+      const network = new vis.Network(graphEl, ds, options);
+      network.fit({ animation: { duration: 500 } });
+      return { network, nodeDS: ds.nodes, edgeDS: ds.edges, nodeById };
+    }
+
+    (async function init() {
+      const graphEl = document.getElementById('graph');
+      const sequenceBox = document.getElementById('sequenceBox');
+      const goalSelect = document.getElementById('goalSelect');
+
+      const dataResp = await fetch('./build_data.json', { cache: 'no-store' });
+      const data = await dataResp.json();
+
+      // Goal options = component nodes (C*)
+      const goals = data.nodes.filter(n => n.kind === 'C').map(n => n.id).sort();
+      for (const g of goals) {
+        const opt = document.createElement('option');
+        opt.value = g;
+        opt.textContent = g;
+        goalSelect.appendChild(opt);
+      }
+      goalSelect.value = data.goal || 'C1';
+
+      const { network, nodeDS, edgeDS, nodeById } = makeVisNetwork(graphEl, data);
+
+      let cadApi = null;
+      let lastSequence = [];
+      let lastPAtSelection = {};
+      const nodeByIdMap = new Map(data.nodes.map(n => [n.id, n]));
+      const cadStatusEl = document.getElementById('cadStatus');
+
+      // Overlay edges to show the DSP "path" independent from the text list
+      const overlayBaseEdgeId = 1000000;
+      let overlayEdgeIds = [];
+
+      function clearOverlayEdges() {
+        if (!overlayEdgeIds.length) return;
+        edgeDS.remove(overlayEdgeIds);
+        overlayEdgeIds = [];
+      }
+
+      let pathOverlayColor = 'rgba(250,204,21,0.95)';
+
+      function showDSPPath(sequence) {
+        clearOverlayEdges();
+        if (!sequence || sequence.length < 2) return;
+
+        const overlayEdges = [];
+        for (let i = 0; i < sequence.length - 1; i++) {
+          overlayEdges.push({
+            id: overlayBaseEdgeId + i,
+            from: sequence[i],
+            to: sequence[i + 1],
+            arrows: 'to',
+            dashes: true,
+            color: { color: pathOverlayColor },
+            width: 4
+          });
+          overlayEdgeIds.push(overlayBaseEdgeId + i);
+        }
+        edgeDS.add(overlayEdges);
+      }
+
+      function applySequenceHighlight(sequence, pAtSelection) {
+        // Reset colors first
+        for (const n of data.nodes) {
+          const baseBg = n.id === 'C1' ? 'rgba(34,197,94,0.85)' : 'rgba(59,130,246,0.85)';
+          const baseBorder = n.id === 'C1' ? 'rgba(74,222,128,1)' : 'rgba(96,165,250,1)';
+          nodeDS.update({
+            id: n.id,
+            color: { background: baseBg, border: baseBorder },
+            borderWidth: 2,
+          });
+        }
+
+        // Highlight nodes in the DSP
+        for (let i = 0; i < sequence.length; i++) {
+          const v = sequence[i];
+          const p = pAtSelection[v] ?? 0.5;
+          const bg = colorForProb(p);
+          nodeDS.update({
+            id: v,
+            color: { background: bg, border: 'rgba(255,255,255,0.95)' },
+            borderWidth: 4,
+          });
+        }
+
+        // Show the DSP path as an overlay on the diagram
+        showDSPPath(sequence);
+      }
+
+      const algoHint = document.getElementById('algoHint');
+      const gaSettings = document.getElementById('gaSettings');
+      const gaStats = document.getElementById('gaStats');
+      const noiseTestStats = document.getElementById('noiseTestStats');
+      const recomputeBtn = document.getElementById('recomputeBtn');
+      const noiseTestBtn = document.getElementById('noiseTestBtn');
+      const envSummary = document.getElementById('envSummary');
+      const branchingStatusLine = document.getElementById('branchingStatusLine');
+
+      function selectedAlgo() {
+        return document.getElementById('algoGa').checked ? 'ga' : 'dijkstra';
+      }
+
+      function updateAlgoUI() {
+        const algo = selectedAlgo();
+        gaSettings.classList.toggle('show', algo === 'ga');
+        gaStats.classList.toggle('visible', algo === 'ga');
+        if (algo === 'dijkstra') {
+          algoHint.innerHTML =
+            '<b>Dijkstra</b> uses edge cost <code>effectiveTorque(v) / p(v)</code>: nominal <code>removal_force_Nm</code> from data is scaled up under harsh environment (seizure, jamming, corrosion stress, wear). Result is the <b>minimum</b> total cost for this model.';
+          gaStats.textContent = '';
+        } else {
+          algoHint.innerHTML =
+            '<b>GA</b> evolves one weight per node; each step removes the available node with <b>highest</b> weight. Fitness is total <code>effectiveTorque / p</code> along that sequence (same cost model as Dijkstra). Population, generations, and mutation are chosen automatically from graph size. Not guaranteed optimal — compare cost with Dijkstra.';
+        }
+      }
+
+      function readParams() {
+        const preservation = document.getElementById('preservation').value;
+        const branchingRiskMode = document.getElementById('branchingRiskMode').value;
+        return {
+          compA: 0.25,
+          compB: 1.0,
+          wearK: 1.25,
+          useWear: true,
+          // Task difficulty model (from Excel task table)
+          diffCostK: 0.10,
+          diffP: 0.05,
+          // Shared-tool heat model (fasteners only)
+          heatP: 0.20,
+          heatF: 0.15,
+          heatCool: 1,
+          heatMax: 3,
+          serviceYears: parseFloat(document.getElementById('serviceYears').value),
+          humidity: parseFloat(document.getElementById('humidity').value),
+          storageType: document.getElementById('storageType').value,
+          preservation,
+          observedRust: observedRustFromPreservation(preservation),
+          branchingRiskMode,
+        };
+      }
+
+      function computeSequenceTotalCost(data, sequence, params) {
+        if (!sequence || !sequence.length) return Infinity;
+        const nodeList = data.nodes;
+        const n = nodeList.length;
+        const idToIdx = {};
+        for (let i = 0; i < n; i++) idToIdx[nodeList[i].id] = i;
+        const pForNodeIndex = makePForNodeIndex(data, params);
+        const effectiveForceNm = makeEffectiveForceNmForIndex(data, params);
+        let mask = 0;
+        let lastToolCode = null;
+        let heatLevel = 0;
+        let total = 0;
+
+        function getToolCode(nodeRec) {
+          if (!nodeRec) return null;
+          if (nodeRec.toolCode && String(nodeRec.toolCode).trim()) return String(nodeRec.toolCode).trim();
+          if (nodeRec.partCode != null) return String(nodeRec.partCode);
+          return null;
+        }
+
+        function stepHeatUpdate(nodeRec) {
+          if (!nodeRec) return;
+          if (nodeRec.kind === 'F') {
+            const t = getToolCode(nodeRec);
+            if (!t) return;
+            if (lastToolCode && t === lastToolCode) heatLevel = Math.min(params.heatMax, heatLevel + 1);
+            else heatLevel = 1;
+            lastToolCode = t;
+            return;
+          }
+          heatLevel = Math.max(0, heatLevel - params.heatCool);
+        }
+
+        for (const id of sequence) {
+          const idx = idToIdx[id];
+          if (idx === undefined) continue;
+          const p = pForNodeIndex(idx, mask, lastToolCode, heatLevel);
+          const f = effectiveForceNm(idx, mask, lastToolCode, heatLevel);
+          total += f / Math.max(EPS, p);
+          mask |= (1 << idx);
+          stepHeatUpdate(nodeList[idx]);
+        }
+        return total;
+      }
+
+      const chartOk = typeof Chart !== 'undefined';
+      let resultsBarChart = null;
+      let resultsLineChart = null;
+
+      function destroyResultsBarChart() {
+        if (resultsBarChart) {
+          resultsBarChart.destroy();
+          resultsBarChart = null;
+        }
+      }
+
+      function destroyResultsLineChart() {
+        if (resultsLineChart) {
+          resultsLineChart.destroy();
+          resultsLineChart = null;
+        }
+      }
+
+      function clearResultsNoiseLineChart() {
+        destroyResultsLineChart();
+        const ph = document.getElementById('resultsLinePlaceholder');
+        if (ph) ph.classList.remove('hidden');
+      }
+
+      function renderResultsBarChart(dijkCost, gaCost) {
+        if (!chartOk) return;
+        const canvas = document.getElementById('resultsBarCanvas');
+        if (!canvas) return;
+        destroyResultsBarChart();
+        const labels = [];
+        const values = [];
+        const colors = [];
+        if (dijkCost != null && Number.isFinite(dijkCost)) {
+          labels.push('Dijkstra');
+          values.push(dijkCost);
+          colors.push('rgba(250, 204, 21, 0.78)');
+        }
+        if (gaCost != null && Number.isFinite(gaCost)) {
+          labels.push('GA');
+          values.push(gaCost);
+          colors.push('rgba(56, 189, 248, 0.78)');
+        }
+        if (!labels.length) return;
+
+        const ctx = canvas.getContext('2d');
+        resultsBarChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Σ (F/p)',
+              data: values,
+              backgroundColor: colors,
+              borderColor: colors.map((c) => c.replace('0.78', '1')),
+              borderWidth: 1,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    const v = ctx.parsed.y;
+                    return (v != null && Number.isFinite(v)) ? Number(v).toFixed(4) : '';
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: { color: '#94a3b8', maxRotation: 0 },
+                grid: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: '#94a3b8' },
+                grid: { color: 'rgba(255, 255, 255, 0.06)' },
+              },
+            },
+          },
+        });
+      }
+
+      function renderResultsNoiseLineChart(dCosts, gCosts, dNom, gNom) {
+        if (!chartOk || !dCosts.length) return;
+        const canvas = document.getElementById('resultsLineCanvas');
+        const ph = document.getElementById('resultsLinePlaceholder');
+        if (!canvas || !ph) return;
+        ph.classList.add('hidden');
+        destroyResultsLineChart();
+        const n = dCosts.length;
+        const labels = Array.from({ length: n }, (_, i) => String(i + 1));
+        const ctx = canvas.getContext('2d');
+
+        resultsLineChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Dijkstra seq (noisy)',
+                data: dCosts,
+                borderColor: 'rgb(250, 204, 21)',
+                backgroundColor: 'rgba(250, 204, 21, 0.06)',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.12,
+              },
+              {
+                label: 'GA seq (noisy)',
+                data: gCosts,
+                borderColor: 'rgb(56, 189, 248)',
+                backgroundColor: 'rgba(56, 189, 248, 0.06)',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.12,
+              },
+              {
+                label: 'Nominal Dijkstra',
+                data: Array(n).fill(dNom),
+                borderColor: 'rgba(250, 204, 21, 0.4)',
+                borderDash: [6, 4],
+                pointRadius: 0,
+                borderWidth: 1,
+              },
+              {
+                label: 'Nominal GA',
+                data: Array(n).fill(gNom),
+                borderColor: 'rgba(56, 189, 248, 0.4)',
+                borderDash: [6, 4],
+                pointRadius: 0,
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: {
+                display: true,
+                position: 'bottom',
+                labels: { color: '#cbd5e1', boxWidth: 10, font: { size: 9 }, padding: 8 },
+              },
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    const v = ctx.parsed.y;
+                    const t = (v != null && Number.isFinite(v)) ? Number(v).toFixed(4) : '';
+                    return ctx.dataset.label + ': ' + t;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: { display: true, text: 'Trial', color: '#64748b', font: { size: 10 } },
+                ticks: { color: '#94a3b8', maxTicksLimit: 10 },
+                grid: { color: 'rgba(255, 255, 255, 0.04)' },
+              },
+              y: {
+                title: { display: true, text: 'Σ (F/p)', color: '#64748b', font: { size: 10 } },
+                ticks: { color: '#94a3b8' },
+                grid: { color: 'rgba(255, 255, 255, 0.06)' },
+              },
+            },
+          },
+        });
+      }
+
+      function recomputeAndRender() {
+        clearResultsNoiseLineChart();
+        const goal = goalSelect.value;
+        const params = readParams();
+        const env = buildEnvContext(params);
+        const branchingRisk = createBranchingRiskModel(data, params);
+        envSummary.textContent =
+          `Corrosion scale=${env.corrosionScale.toFixed(2)}, seizure add=${env.seizureAdd.toFixed(2)}; ` +
+          'effective removal torque scales with bond condition (fasteners) and environment.';
+        branchingStatusLine.textContent = branchingRisk.enabled
+          ? 'Branching-risk model is ON — Path A vs Path B p/torque multipliers apply.'
+          : 'Branching-risk model is OFF — standard cost model only (no A-vs-B trap).';
+
+        const algo = selectedAlgo();
+
+        if (algo === 'dijkstra') {
+          pathOverlayColor = 'rgba(250,204,21,0.95)';
+          const res = dijkstraDSP(data, goal, params);
+          const sequence = res.sequence || [];
+          const pAtSelection = res.pAtSelection || {};
+          applySequenceHighlight(sequence, pAtSelection);
+
+          sequenceBox.innerHTML = '';
+          if (!sequence.length) {
+            lastSequence = [];
+            lastPAtSelection = {};
+            destroyResultsBarChart();
+            sequenceBox.textContent = res.reason || 'No DSP found.';
+            return;
+          }
+
+          lastSequence = sequence.slice();
+          lastPAtSelection = { ...pAtSelection };
+          const planCost = computeSequenceTotalCost(data, sequence, params);
+          renderResultsBarChart(planCost, null);
+          if (cadApi) cadApi.syncSequenceHighlight(lastSequence, lastPAtSelection, nodeByIdMap);
+
+          const lines = sequence.map((v, idx) => {
+            const p = pAtSelection[v] ?? null;
+            const label = nodeById[v]?.label || v;
+            const pTxt = (p === null) ? '' : ` p=${p.toFixed(3)}`;
+            const rec = nodeById[v];
+            const task = rec?.taskCode ? String(rec.taskCode).trim() : '';
+            const taskTxt = task ? ` task=${task}` : '';
+            return `${idx + 1}. ${v} — ${label}${taskTxt}${pTxt}`;
+          });
+
+          sequenceBox.innerHTML =
+            '<div style="color:#fff;margin-bottom:8px;font-weight:600;">Dijkstra · Plan length: ' + sequence.length + '</div>' +
+            '<div>' + lines.join('<br/>') + '</div>';
+          return;
+        }
+
+        // Genetic algorithm (hyperparameters follow graph size + algorithm.py-style defaults)
+        pathOverlayColor = 'rgba(250,204,21,0.95)';
+        const nRel = computeRelevantNodeCount(data, goal);
+        const pop = autoPopulationFromComplexity(nRel);
+        const gens = autoGenerationsFromComplexity(nRel);
+        const mutationSigma = autoMutationFromComplexity(nRel);
+        const seed = 1234;
+        const eliteFrac = 0.25;
+
+        recomputeBtn.disabled = true;
+        sequenceBox.textContent = 'Running GA…';
+        gaStats.textContent = '';
+
+        const t0 = performance.now();
+        setTimeout(() => {
+          try {
+            const res = geneticAlgorithmDSP(data, goal, params, {
+              pop, gens, seed, mutationSigma, eliteFrac
+            });
+            const t1 = performance.now();
+            const ev = res.bestEval;
+
+            if (!ev || !ev.ok) {
+              lastSequence = [];
+              lastPAtSelection = {};
+              destroyResultsBarChart();
+              sequenceBox.textContent = (ev && ev.reason) || 'GA did not find a valid sequence.';
+              applySequenceHighlight([], {});
+              gaStats.textContent = `Time: ${(t1 - t0).toFixed(0)} ms · gens=${res.generations} pop=${res.population}`;
+              recomputeBtn.disabled = false;
+              return;
+            }
+
+            const sequence = ev.sequence || [];
+            const pAtSelection = ev.pAtSelection || {};
+            lastSequence = sequence.slice();
+            lastPAtSelection = { ...pAtSelection };
+            applySequenceHighlight(sequence, pAtSelection);
+
+            const lines = sequence.map((v, idx) => {
+              const p = pAtSelection[v] ?? null;
+              const label = nodeById[v]?.label || v;
+              const pTxt = (p === null) ? '' : ` p=${p.toFixed(3)}`;
+              const rec = nodeById[v];
+              const task = rec?.taskCode ? String(rec.taskCode).trim() : '';
+              const taskTxt = task ? ` task=${task}` : '';
+              return `${idx + 1}. ${v} — ${label}${taskTxt}${pTxt}`;
+            });
+
+            sequenceBox.innerHTML =
+              '<div style="color:#fff;margin-bottom:8px;font-weight:600;">GA · sequence length: ' + sequence.length + '</div>' +
+              '<div>' + lines.join('<br/>') + '</div>';
+
+            const dOpt = dijkstraDSP(data, goal, params);
+            let dCost = null;
+            if (dOpt.sequence && dOpt.sequence.length) {
+              dCost = computeSequenceTotalCost(data, dOpt.sequence, params);
+            }
+            renderResultsBarChart(dCost, res.bestCost);
+            if (cadApi) cadApi.syncSequenceHighlight(lastSequence, lastPAtSelection, nodeByIdMap);
+
+            if (dCost != null && Number.isFinite(dCost)) {
+              const gaCost = res.bestCost;
+              const gap = gaCost - dCost;
+              const gapPct = (dCost > EPS) ? (100 * gap / dCost) : 0;
+              gaStats.textContent =
+                `GA cost: ${gaCost.toFixed(4)} · Dijkstra cost: ${dCost.toFixed(4)} · gap: ${gap.toFixed(4)} (${gapPct.toFixed(2)}%) · ` +
+                `Time: ${(t1 - t0).toFixed(0)} ms · pop=${res.population} gens=${res.generations}`;
+            } else {
+              gaStats.textContent =
+                `GA cost: ${res.bestCost.toFixed(4)} · Last gen best: ${res.lastGenBest.toFixed(4)} · ` +
+                `Time: ${(t1 - t0).toFixed(0)} ms · pop=${res.population} gens=${res.generations}`;
+            }
+          } catch (e) {
+            console.error(e);
+            sequenceBox.textContent = String(e);
+          }
+          recomputeBtn.disabled = false;
+        }, 30);
+      }
+
+      async function initCadViewerPanel() {
+        try {
+          const { createCadViewer } = await import('./cad_viewer.js');
+          cadApi = createCadViewer(document.getElementById('cadCanvasHost'), {
+            getNodes: () => data.nodes,
+            onGoalNode: (nodeId) => {
+              goalSelect.value = nodeId;
+              goalSelect.dispatchEvent(new Event('change'));
+              recomputeAndRender();
+            },
+            onGraphFocus: (ids, message) => {
+              cadStatusEl.textContent = message;
+              if (ids && ids.length) network.selectNodes(ids);
+            },
+          });
+          const cadZoomInBtn = document.getElementById('cadZoomIn');
+          const cadZoomOutBtn = document.getElementById('cadZoomOut');
+          if (cadZoomInBtn) {
+            cadZoomInBtn.addEventListener('click', () => {
+              if (cadApi) cadApi.zoomIn();
+            });
+          }
+          if (cadZoomOutBtn) {
+            cadZoomOutBtn.addEventListener('click', () => {
+              if (cadApi) cadApi.zoomOut();
+            });
+          }
+
+          const result = await cadApi.tryLoad('./gearbox_cad.glb');
+          if (result.ok) {
+            cadStatusEl.textContent =
+              `Loaded gearbox_cad.glb — ${result.meshCount} meshes, ${result.partCodes} part codes indexed. Click a part to set goal or focus graph nodes.`;
+            if (lastSequence.length) {
+              cadApi.syncSequenceHighlight(lastSequence, lastPAtSelection, nodeByIdMap);
+            }
+          } else {
+            cadStatusEl.innerHTML =
+              'Place <b>gearbox_cad.glb</b> next to this page (export from Blender: File → Export → glTF 2.0). Object names must start with a two-digit BOM part code — same as <code>CAD/blender.py</code> (e.g. <code>01_00_Base</code>, <code>16_Screw_00</code>). Refresh after export.';
+          }
+        } catch (e) {
+          console.error(e);
+          cadStatusEl.textContent =
+            'CAD module failed (open DevTools console). Serve this folder over HTTP (e.g. XAMPP) so ES modules can load cad_viewer.js.';
+        }
+      }
+
+      initCadViewerPanel();
+
+      const serviceYears = document.getElementById('serviceYears');
+      const humidity = document.getElementById('humidity');
+      const lifeVal = document.getElementById('lifeVal');
+      const humVal = document.getElementById('humVal');
+
+      serviceYears.addEventListener('input', () => { lifeVal.textContent = parseFloat(serviceYears.value).toFixed(1); });
+      humidity.addEventListener('input', () => { humVal.textContent = parseFloat(humidity.value).toFixed(0); });
+
+      goalSelect.addEventListener('change', () => {
+        noiseTestStats.classList.remove('visible');
+        noiseTestStats.textContent = '';
+        recomputeAndRender();
+      });
+      document.getElementById('storageType').addEventListener('change', () => { recomputeAndRender(); });
+      document.getElementById('preservation').addEventListener('change', () => { recomputeAndRender(); });
+      document.getElementById('branchingRiskMode').addEventListener('change', () => { recomputeAndRender(); });
+
+      document.getElementById('algoDijkstra').addEventListener('change', () => {
+        updateAlgoUI();
+        recomputeAndRender();
+      });
+      document.getElementById('algoGa').addEventListener('change', () => {
+        updateAlgoUI();
+        sequenceBox.innerHTML = '<div style="color:#94a3b8;">Press <b>Recompute sequence</b> to run the genetic algorithm.</div>';
+        gaStats.textContent = '';
+        clearOverlayEdges();
+        if (cadApi) cadApi.resetAllHighlights();
+        for (const n of data.nodes) {
+          const baseBg = n.id === 'C1' ? 'rgba(34,197,94,0.85)' : 'rgba(59,130,246,0.85)';
+          const baseBorder = n.id === 'C1' ? 'rgba(74,222,128,1)' : 'rgba(96,165,250,1)';
+          nodeDS.update({ id: n.id, color: { background: baseBg, border: baseBorder }, borderWidth: 2 });
+        }
+      });
+
+      recomputeBtn.addEventListener('click', () => {
+        recomputeAndRender();
+      });
+
+      const NOISE_TRIALS = 300;
+
+      noiseTestBtn.addEventListener('click', () => {
+        const goal = goalSelect.value;
+        const params = readParams();
+        const seedBase = String(goal).split('').reduce((a, c) => (a + c.charCodeAt(0)) | 0, 0);
+
+        noiseTestBtn.disabled = true;
+        recomputeBtn.disabled = true;
+        noiseTestStats.classList.add('visible');
+        noiseTestStats.innerHTML =
+          '<span style="color:#94a3b8;">Noise test: Dijkstra + GA, then ' +
+          NOISE_TRIALS +
+          ' Monte Carlo samples (±10% corrosion &amp; torque per part)…</span>';
+
+        setTimeout(() => {
+          try {
+            const dRes = dijkstraDSP(data, goal, params);
+            const dSeq = dRes.sequence || [];
+            if (!dSeq.length) {
+              noiseTestStats.innerHTML =
+                '<span style="color:#f87171;">Noise test: no Dijkstra plan for this goal.</span>';
+              return;
+            }
+
+            const nRel = computeRelevantNodeCount(data, goal);
+            const pop = autoPopulationFromComplexity(nRel);
+            const gens = autoGenerationsFromComplexity(nRel);
+            const mutationSigma = autoMutationFromComplexity(nRel);
+            const gaRes = geneticAlgorithmDSP(data, goal, params, {
+              pop,
+              gens,
+              seed: 1234,
+              mutationSigma,
+              eliteFrac: 0.25,
+            });
+            const ev = gaRes.bestEval;
+            if (!ev || !ev.ok || !ev.sequence || !ev.sequence.length) {
+              noiseTestStats.innerHTML =
+                '<span style="color:#f87171;">Noise test: GA did not produce a valid sequence.</span>';
+              return;
+            }
+            const gaSeq = ev.sequence;
+
+            const dNom = computeSequenceTotalCost(data, dSeq, params);
+            const gNom = computeSequenceTotalCost(data, gaSeq, params);
+            renderResultsBarChart(dNom, gNom);
+            const rng = mulberry32((seedBase + 0x9e3779b9) >>> 0);
+            const dCosts = [];
+            const gCosts = [];
+            for (let t = 0; t < NOISE_TRIALS; t++) {
+              const noisy = buildNoisyDataCopy(data, rng);
+              dCosts.push(computeSequenceTotalCost(noisy, dSeq, params));
+              gCosts.push(computeSequenceTotalCost(noisy, gaSeq, params));
+            }
+
+            const sd = summarizeCostSamples(dCosts);
+            const sg = summarizeCostSamples(gCosts);
+            const relMeanD = (dNom > EPS) ? 100 * (sd.mean / dNom - 1) : 0;
+            const relMeanG = (gNom > EPS) ? 100 * (sg.mean / gNom - 1) : 0;
+            const relP95D = (dNom > EPS) ? 100 * (sd.p95 / dNom - 1) : 0;
+            const relP95G = (gNom > EPS) ? 100 * (sg.p95 / gNom - 1) : 0;
+
+            let verdictLine = '';
+            const meanGap = relMeanG - relMeanD;
+            if (Math.abs(meanGap) < 0.1) {
+              verdictLine =
+                'Mean cost sensitivity to ±10% input error is about the same for these two fixed sequences.';
+            } else if (relMeanG > relMeanD) {
+              verdictLine =
+                'The <b>GA</b> sequence’s mean cost increases more under measurement noise (higher “explosion” on average).';
+            } else {
+              verdictLine =
+                'The <b>Dijkstra</b> sequence’s mean cost increases more under measurement noise (higher “explosion” on average).';
+            }
+
+            noiseTestStats.innerHTML =
+              '<div style="font-weight:600;margin-bottom:6px;color:#e0f2fe;">Noise test · ±10% per part · ' +
+              NOISE_TRIALS +
+              ' trials</div>' +
+              '<div style="line-height:1.45;font-size:12px;">' +
+              '<b>Nominal</b> Σ(force/p): Dijkstra plan ' +
+              dNom.toFixed(4) +
+              ' · GA plan ' +
+              gNom.toFixed(4) +
+              '<br/>' +
+              '<b>Noisy mean ± std</b>: Dijkstra ' +
+              sd.mean.toFixed(4) +
+              ' ± ' +
+              sd.std.toFixed(4) +
+              ' · GA ' +
+              sg.mean.toFixed(4) +
+              ' ± ' +
+              sg.std.toFixed(4) +
+              '<br/>' +
+              '<b>Mean Δ vs nominal</b>: Dijkstra ' +
+              (relMeanD >= 0 ? '+' : '') +
+              relMeanD.toFixed(2) +
+              '% · GA ' +
+              (relMeanG >= 0 ? '+' : '') +
+              relMeanG.toFixed(2) +
+              '%<br/>' +
+              '<b>95th percentile Δ vs nominal</b>: Dijkstra ' +
+              (relP95D >= 0 ? '+' : '') +
+              relP95D.toFixed(2) +
+              '% · GA ' +
+              (relP95G >= 0 ? '+' : '') +
+              relP95G.toFixed(2) +
+              '%<br/>' +
+              '<span style="color:#bae6fd;">' +
+              verdictLine +
+              '</span>' +
+              '</div>';
+
+            renderResultsNoiseLineChart(dCosts, gCosts, dNom, gNom);
+          } catch (e) {
+            console.error(e);
+            noiseTestStats.innerHTML =
+              '<span style="color:#f87171;">Noise test failed: ' + String(e) + '</span>';
+          } finally {
+            noiseTestBtn.disabled = false;
+            recomputeBtn.disabled = false;
+          }
+        }, 40);
+      });
+
+      if (/ga/i.test(location.hash)) {
+        document.getElementById('algoGa').checked = true;
+      }
+
+      updateAlgoUI();
+
+      // Initial compute (Dijkstra by default, or GA if hash)
+      recomputeAndRender();
+    })().catch(err => {
+      console.error(err);
+      alert('Failed to load webapp data: ' + err);
+    });
+  </script>
+</body>
+
+</html>

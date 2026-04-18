@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.Python
+*.log
+.env
+.venv/
+venv/
+
+# Local clone placeholder (separate repo)
+DSP/
