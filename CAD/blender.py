@@ -3,14 +3,10 @@ import math
 import re
 from mathutils import Vector
 
-# ----------------------------
 # Paths (absolute)
-# ----------------------------
 GRAPH_HTML_PATH = r"C:\xampp\htdocs\research\gearbox_connection_graph.html"
 
-# ----------------------------
 # Settings
-# ----------------------------
 COLLECTION_NAME = "Exploded_Gearbox"
 EXPLODE_AXIS = Vector((0, 1, 0))   # +Y = right
 EXPLODE_AMOUNT = 70.0
@@ -18,9 +14,7 @@ EXPLODE_AMOUNT = 70.0
 FRAME_ASSEMBLED = 1
 FRAME_EXPLODED = 40
 
-# ----------------------------
 # Clear scene (NO bpy.ops select_all)
-# ----------------------------
 def clear_scene():
     for obj in list(bpy.data.objects):
         bpy.data.objects.remove(obj, do_unlink=True)
@@ -31,9 +25,7 @@ def clear_scene():
 
 clear_scene()
 
-# ----------------------------
 # Collection helper
-# ----------------------------
 def ensure_collection(name):
     col = bpy.data.collections.get(name)
     if col is None:
@@ -48,9 +40,7 @@ def add_to_collection(obj, target_col):
         c.objects.unlink(obj)
     target_col.objects.link(obj)
 
-# ----------------------------
 # Materials (unique per code)
-# ----------------------------
 mat_cache = {}
 
 def hsl_to_rgba(h, s, l, a=1.0):
@@ -86,9 +76,7 @@ def assign_material(obj, code):
     else:
         obj.data.materials.append(mat)
 
-# ----------------------------
 # Graph HTML parsing: disassemblyStep
-# ----------------------------
 def parse_disassembly_steps_from_graph_html(path):
     txt = open(path, "r", encoding="utf-8").read()
     m = re.search(r"const\s+disassemblyStep\s*=\s*\{([^}]*)\}\s*;", txt, flags=re.S)
@@ -104,9 +92,7 @@ def parse_disassembly_steps_from_graph_html(path):
 disassembly_step = parse_disassembly_steps_from_graph_html(GRAPH_HTML_PATH)
 MAX_STEP = max(disassembly_step.values())
 
-# ----------------------------
-# Hardcoded qty (from Sheet4) — no openpyxl needed
-# ----------------------------
+# Hardcoded qty (from gearbox.xlsx) — no openpyxl needed
 PART_QTY = {
     1:1, 2:4, 3:2, 4:1, 5:1, 6:1, 7:1, 8:1, 9:1, 10:1,
     11:3, 12:1, 13:1, 14:1, 15:1,
@@ -114,9 +100,7 @@ PART_QTY = {
     21:1, 22:1, 23:1, 24:1
 }
 
-# ----------------------------
-# Node -> part code mapping (from Sheets 5 & 6)
-# ----------------------------
+# Node -> part code mapping (from gearboox.xlsx)
 node_to_part = {
     # Fasteners
     "F1":16, "F2":17, "F3SX":19, "F3DX":19, "F4":21, "F5":22, "F6":23, "F7":24,
@@ -139,9 +123,7 @@ for node_id, part_code in node_to_part.items():
     if node_id in disassembly_step:
         PART_STEP[part_code] = min(PART_STEP[part_code], disassembly_step[node_id])
 
-# ----------------------------
 # Part geometry types (proxy)
-# ----------------------------
 PART_TYPE = {
     1: "Base",
     2: "Bearings12",
@@ -158,7 +140,7 @@ PART_TYPE = {
     13: "BearingSealNoHole",
     14: "BearingSealWithHole",
     15: "Cover",
-    16: "ScrewM12x30",
+    16: "ScrewM12x30",)
     17: "PositioningPin",
     18: "Hook",
     19: "FlangeScrews",
@@ -245,9 +227,7 @@ def base_loc_for(code, idx, qty):
 
     return CENTER.copy()
 
-# ----------------------------
 # Geometry (proxies)
-# ----------------------------
 def make_box(name, size_xyz, loc, rot=(0, 0, 0)):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot)
     obj = bpy.context.active_object
@@ -300,9 +280,7 @@ def make_hook_proxy(code, idx, loc):
     obj.name = f"{code:02d}_Hook_{idx:02d}"
     return obj
 
-# ----------------------------
 # Camera + light (data API)
-# ----------------------------
 def setup_camera_light():
     cam_data = bpy.data.cameras.new("CameraData")
     cam_obj = bpy.data.objects.new("Camera", cam_data)
@@ -319,9 +297,7 @@ def setup_camera_light():
 
 setup_camera_light()
 
-# ----------------------------
 # Build exploded model
-# ----------------------------
 scene = bpy.context.scene
 scene.frame_start = FRAME_ASSEMBLED
 scene.frame_end = FRAME_EXPLODED
@@ -396,16 +372,3 @@ for code in range(1, 25):
 
 print("Done: exploded proxy gearbox built from HTML graph + hardcoded qty/mapping (no openpyxl).")
 
-# ----------------------------
-# Webapp link (research/webapp.html + cad_viewer.js)
-# ----------------------------
-# Object names use a two-digit BOM part code prefix (e.g. 01_00_Base, 16_Screw_00).
-# The browser maps that to build_data.json via partCode → graph node ids.
-#
-# Export for the 3D panel:
-#   File → Export → glTF 2.0 (.glb)
-#   Save as:  C:\xampp\htdocs\research\gearbox_cad.glb
-#   Recommended: Selected Objects = off (export whole collection), +Y up
-#
-# Optional one-liner after running this script (run inside Blender Text Editor or console):
-#   bpy.ops.export_scene.gltf(filepath=r"C:\xampp\htdocs\research\gearbox_cad.glb", export_format='GLB', use_selection=False)

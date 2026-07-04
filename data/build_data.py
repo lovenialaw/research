@@ -1,18 +1,3 @@
-"""
-build_data.py
-
-Generates `build_data.json` in this folder from:
-  - gearbox_kg.html (precedence edges + node names)
-  - gearbox.xlsx:
-      - sheet `components` (environment uncertainties: Temperature, Corrosion level)
-      - sheet `tools` (tool/fastener uncertainties: tool success, wear, seizure/jamming, removal force)
-      - sheet `Sheet5` (component node -> BOM part code)
-      - sheet `Sheet6` (fastener node -> BOM part code)
-
-Output:
-  - build_data.json (same folder as this script).
-"""
-
 from __future__ import annotations
 
 import json
@@ -91,7 +76,7 @@ def read_xlsx_uncertainties(xlsx_path: str):
         return m
 
     def _find_task_table(ws):
-        # Look for a row containing "Task code:" and "Difficulty"
+        # Look for a row containing "Task code" and "Difficulty"
         for r in range(1, min(500, ws.max_row + 1)):
             a = ws.cell(r, 1).value
             b = ws.cell(r, 2).value
@@ -101,9 +86,6 @@ def read_xlsx_uncertainties(xlsx_path: str):
                 return r
         return None
 
-    # components: table is two-header rows:
-    # row1: Part Number, Description, Quantity, Task, Environment variables
-    # row2: (under env vars) Temperature, Corrosion level
     ws_comp = wb["components"]
     comp_row1 = _build_col_map(ws_comp, header_row=1)
     comp_row2 = _build_col_map(ws_comp, header_row=2)
@@ -115,7 +97,6 @@ def read_xlsx_uncertainties(xlsx_path: str):
     temp_col = comp_row2.get("temperature", 5)
     corr_col = comp_row2.get("corrosion level", 6)
 
-    # Data starts at row 3 until blank part number or until task table begins
     task_table_header_row = _find_task_table(ws_comp)
     stop_row = (task_table_header_row -
                 1) if task_table_header_row else (ws_comp.max_row + 1)
@@ -138,9 +119,6 @@ def read_xlsx_uncertainties(xlsx_path: str):
         if task is not None and str(task).strip():
             component_task_by_part[part] = str(task).strip()
 
-    # fasteners: renamed sheet (was "tools" earlier)
-    # row1: Part Number, Description, Quantity, Task, Fasteners..., Environment variables..., Bolt...
-    # row2: Fasteners success rate, Fasteners wear, Temperature, Corrosion level, Bolt seizure probability, Bearing jamming probability, Removal force (Nm)
     ws_fast = wb["fasteners"]
     fast_row1 = _build_col_map(ws_fast, header_row=1)
     fast_row2 = _build_col_map(ws_fast, header_row=2)
@@ -150,7 +128,7 @@ def read_xlsx_uncertainties(xlsx_path: str):
 
     part_col_f = fast_row1.get("part number", 1)
     task_col_f = fast_row1.get("task", 4)
-    # optional: allow a "Tool code" / "Tool" column to exist in row1
+
     tool_code_col_f = fast_row1.get("tool code") or fast_row1.get(
         "tool") or fast_row1.get("tool/alttools")
 
@@ -197,7 +175,6 @@ def read_xlsx_uncertainties(xlsx_path: str):
         if tool_code is not None and str(tool_code).strip():
             fastener_tool_code_by_part[part] = str(tool_code).strip()
 
-    # Task code -> difficulty mapping (in components sheet, below the main table)
     task_difficulty_by_code: Dict[str, float] = {}
     if task_table_header_row:
         for r in range(task_table_header_row + 1, min(task_table_header_row + 50, ws_comp.max_row + 1)):
@@ -216,8 +193,8 @@ def read_xlsx_uncertainties(xlsx_path: str):
             if code:
                 task_difficulty_by_code[code] = diff
 
-    # Sheet5: component node -> BOM part code
-    ws5 = wb["Sheet5"]
+    # component_removal: component node -> BOM part code
+    ws5 = wb["component_removal"]
     comp_node_to_part: Dict[str, int] = {}
     for row in ws5.iter_rows(min_row=3, values_only=True):
         if not row or row[0] is None:
@@ -228,8 +205,8 @@ def read_xlsx_uncertainties(xlsx_path: str):
             continue
         comp_node_to_part[node] = int(float(bom))
 
-    # Sheet6: fastener node -> BOM part code
-    ws6 = wb["Sheet6"]
+    # fasteners_removal: fastener node -> BOM part code
+    ws6 = wb["fasteners_removal"]
     fast_node_to_part: Dict[str, int] = {}
     for row in ws6.iter_rows(min_row=3, values_only=True):
         if not row or row[0] is None:
@@ -253,7 +230,7 @@ def read_xlsx_uncertainties(xlsx_path: str):
 
 
 def main():
-    html_path = str(_ROOT / "gearbox_kg.html")
+    html_path = str(_ROOT.parent / "script" / "gearbox_kg.html")
     xlsx_path = str(_ROOT / "gearbox.xlsx")
     out_path = str(_ROOT / "build_data.json")
 

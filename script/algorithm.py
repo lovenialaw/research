@@ -1,33 +1,3 @@
-"""
-algorithm.py
-
-Find an (approximately) optimal gearbox disassembly sequence using:
-  - Precedence constraints from `gearbox_kg.html`
-  - Uncertainties from `gearbox.xlsx` (sheets: components, tools)
-
-Goal:
-  - remove a chosen node (default: C1 Base) while minimizing expected cost
-
-Notes:
-  - The connection graph encodes precedence: edge A -> B means B can only be removed after A.
-  - We model stochastic "remove attempt success" using uncertainties:
-      - Fastener nodes (F*) use rows in `tools` mapped by Sheet6 (fastener -> BOM part).
-      - Component nodes (C*) use rows in `components` mapped by Sheet5 (component -> BOM part).
-  - Failure model used here:
-      - "retry until success" for the chosen node.
-      - Tool wear accumulates on each fastener removal attempt, which makes the route/order matter.
-
-This script provides:
-  - Dijkstra-style baseline (no wear, deterministic expected cost per node) producing a candidate sequence.
-  - Genetic Algorithm (GA) optimizing a priority-weight vector, evaluated by Monte Carlo simulation
-    using wear + stochastic success probabilities.
-
-Run examples:
-  python algorithm.py --method dijkstra --goal C1
-  python algorithm.py --method ga --goal C1 --pop 40 --gens 50 --sims 200
-  python algorithm.py --method ga --dynamic-mc --sims 200 --sims-coarse 40 --fine-top-frac 0.1
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -40,16 +10,12 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple, Optional, Callable
 
 _RESEARCH_ROOT = Path(__file__).resolve().parent
-_DEFAULT_XLSX = str(_RESEARCH_ROOT / "gearbox.xlsx")
+_DEFAULT_XLSX = str(_RESEARCH_ROOT.parent / "data" / "gearbox.xlsx")
 _DEFAULT_GRAPH = str(_RESEARCH_ROOT / "gearbox_kg.html")
 
-
+#Graph Parsing, Excel Loading, Probability Helpers
 def parse_graph_html_edges(html_path: str) -> Tuple[Set[str], Dict[str, Set[str]]]:
-    """
-    Returns:
-      nodes: all node ids found in the edges array
-      preds: mapping node -> set of predecessor nodes
-    """
+
     with open(html_path, "r", encoding="utf-8") as f:
         txt = f.read()
 
@@ -142,13 +108,6 @@ def load_excel_uncertainties(
     Dict[str, int],
     Dict[str, float],
 ]:
-    """
-    Returns:
-      components_unc_by_part: BOM part code -> ComponentUnc
-      tools_unc_by_part: BOM part code -> FastenerUnc
-      component_node_to_part: graph node id (e.g. 'C2SX') -> BOM part code
-      fastener_node_to_part: graph node id (e.g. 'F3DX') -> BOM part code
-    """
     try:
         import openpyxl
     except Exception as e:
@@ -164,7 +123,8 @@ def load_excel_uncertainties(
         return re.sub(r"\s+", " ", str(x).strip().lower()) if x is not None else ""
 
     def _build_col_map(ws, header_row: int) -> Dict[str, int]:
-        headers = [ws.cell(header_row, c).value for c in range(1, ws.max_column + 1)]
+        headers = [ws.cell(header_row, c).value for c in range(
+            1, ws.max_column + 1)]
         m: Dict[str, int] = {}
         for idx, h in enumerate(headers, start=1):
             k = _norm_header(h)
@@ -209,8 +169,10 @@ def load_excel_uncertainties(
         task = ws_comp.cell(r, task_col).value if task_col else None
         if temp is None or corr is None:
             continue
-        task_code = str(task).strip() if task is not None and str(task).strip() else None
-        components_unc_by_part[part] = ComponentUnc(temperature=float(temp), corrosion_level=float(corr), task_code=task_code)
+        task_code = str(task).strip() if task is not None and str(
+            task).strip() else None
+        components_unc_by_part[part] = ComponentUnc(temperature=float(
+            temp), corrosion_level=float(corr), task_code=task_code)
 
     # Task code -> difficulty table
     task_difficulty_by_code: Dict[str, float] = {}
@@ -238,10 +200,13 @@ def load_excel_uncertainties(
     tools_unc_by_part: Dict[int, FastenerUnc] = {}
     part_col_f = fast_row1.get("part number", 1)
     task_col_f = fast_row1.get("task", 4)
-    tool_code_col_f = fast_row1.get("tool code") or fast_row1.get("tool") or fast_row1.get("tool/alttools")
+    tool_code_col_f = fast_row1.get("tool code") or fast_row1.get(
+        "tool") or fast_row1.get("tool/alttools")
 
-    success_col = fast_row2.get("fasteners success rate") or fast_row2.get("tool success rate") or 5
-    wear_col = fast_row2.get("fasteners wear") or fast_row2.get("tool wear") or 6
+    success_col = fast_row2.get("fasteners success rate") or fast_row2.get(
+        "tool success rate") or 5
+    wear_col = fast_row2.get(
+        "fasteners wear") or fast_row2.get("tool wear") or 6
     bolt_col = fast_row2.get("bolt seizure probability") or 9
     jam_col = fast_row2.get("bearing jamming probability") or 10
     force_col = fast_row2.get("removal force (nm)") or 11
@@ -260,24 +225,30 @@ def load_excel_uncertainties(
         bearing_jam_prob = ws_tools.cell(r, jam_col).value
         removal_force_Nm = ws_tools.cell(r, force_col).value
         task = ws_tools.cell(r, task_col_f).value if task_col_f else None
-        tool_code = ws_tools.cell(r, tool_code_col_f).value if tool_code_col_f else None
+        tool_code = ws_tools.cell(
+            r, tool_code_col_f).value if tool_code_col_f else None
 
         if tool_success_rate is None or tool_wear is None:
             continue
-        task_code = str(task).strip() if task is not None and str(task).strip() else None
-        tool_code_s = str(tool_code).strip() if tool_code is not None and str(tool_code).strip() else None
+        task_code = str(task).strip() if task is not None and str(
+            task).strip() else None
+        tool_code_s = str(tool_code).strip() if tool_code is not None and str(
+            tool_code).strip() else None
         tools_unc_by_part[part] = FastenerUnc(
             tool_success_rate=float(tool_success_rate),
             tool_wear=float(tool_wear),
-            bolt_seizure_probability=float(bolt_seizure_prob) if bolt_seizure_prob is not None else 0.0,
-            bearing_jamming_probability=float(bearing_jam_prob) if bearing_jam_prob is not None else 0.0,
-            removal_force_Nm=float(removal_force_Nm) if removal_force_Nm is not None else 0.0,
+            bolt_seizure_probability=float(
+                bolt_seizure_prob) if bolt_seizure_prob is not None else 0.0,
+            bearing_jamming_probability=float(
+                bearing_jam_prob) if bearing_jam_prob is not None else 0.0,
+            removal_force_Nm=float(
+                removal_force_Nm) if removal_force_Nm is not None else 0.0,
             task_code=task_code,
             tool_code=tool_code_s,
         )
 
-    # Sheet5: component node -> BOM part
-    ws5 = wb["Sheet5"]
+    # component_removal: component node -> BOM part
+    ws5 = wb["component_removal"]
     component_node_to_part: Dict[str, int] = {}
     for row in ws5.iter_rows(min_row=3, values_only=True):
         if not row or row[0] is None:
@@ -288,8 +259,8 @@ def load_excel_uncertainties(
             continue
         component_node_to_part[node] = int(float(bom))
 
-    # Sheet6: fastener node -> BOM part
-    ws6 = wb["Sheet6"]
+    # fasteners_removal: fastener node -> BOM part
+    ws6 = wb["fasteners_removal"]
     fastener_node_to_part: Dict[str, int] = {}
     for row in ws6.iter_rows(min_row=3, values_only=True):
         if not row or row[0] is None:
@@ -302,25 +273,22 @@ def load_excel_uncertainties(
 
     if verbose:
         print("Loaded:")
-        print(f"  component uncertainties: {len(components_unc_by_part)} part codes")
+        print(
+            f"  component uncertainties: {len(components_unc_by_part)} part codes")
         print(f"  tool uncertainties: {len(tools_unc_by_part)} part codes")
         print(f"  component node mapping: {len(component_node_to_part)} nodes")
         print(f"  fastener node mapping: {len(fastener_node_to_part)} nodes")
-        print(f"  task difficulty codes: {len(task_difficulty_by_code)} codes -> {task_difficulty_by_code}")
+        print(
+            f"  task difficulty codes: {len(task_difficulty_by_code)} codes -> {task_difficulty_by_code}")
 
     return components_unc_by_part, tools_unc_by_part, component_node_to_part, fastener_node_to_part, task_difficulty_by_code
 
-
+#build p(component) and p(fastener) from Excel uncertainties
 def build_component_prob_fn(components_unc_by_part: Dict[int, ComponentUnc], a: float, b: float):
-    """
-    Returns p(C) based on component temperature + corrosion level.
-    Simple model:
-      p = exp(-a * corrosion_level) * exp(-b * temp_norm)
-    where temp_norm is in [0,1].
-    """
     temps = [u.temperature for u in components_unc_by_part.values()]
     if not temps:
-        raise RuntimeError("No component uncertainties loaded (components sheet empty?)")
+        raise RuntimeError(
+            "No component uncertainties loaded (components sheet empty?)")
     tmin = min(temps)
     tmax = max(temps)
     denom = (tmax - tmin) if (tmax - tmin) != 0 else 1.0
@@ -340,22 +308,20 @@ def build_fastener_prob_fn(
     tools_unc_by_part: Dict[int, FastenerUnc],
     wear_k: float,
 ):
-    """
-    Returns p(F) based on:
-      p0 = tool_success_rate * (1 - bolt_seizure_probability) * (1 - bearing_jamming_probability)
-      p = p0 * exp(-wear_k * wear_state)
-    """
     def p_fastener(part_code: int, wear_state: float) -> float:
         u = tools_unc_by_part.get(part_code)
         if u is None:
             return 0.5
-        p0 = u.tool_success_rate * (1.0 - clamp01(u.bolt_seizure_probability)) * (1.0 - clamp01(u.bearing_jamming_probability))
+        p0 = u.tool_success_rate * \
+            (1.0 - clamp01(u.bolt_seizure_probability)) * \
+            (1.0 - clamp01(u.bearing_jamming_probability))
         p = p0 * math.exp(-wear_k * max(0.0, wear_state))
         return clamp01(p)
 
     return p_fastener
 
 
+# DIJKSTRA PATH 
 def greedy_deterministic_sequence(
     nodes: Set[str],
     preds: Dict[str, Set[str]],
@@ -364,12 +330,7 @@ def greedy_deterministic_sequence(
     p_fastener_fn,
     node_to_part: Dict[str, int],
     max_nodes: Optional[int] = None,
-):
-    """
-    Deterministic baseline:
-      choose among available nodes the one with minimum expected removal attempts (1/p),
-      where p ignores wear (wear_state=0).
-    """
+):  #greedy deterministic sequence
     remaining = set(nodes)
     removed: Set[str] = set()
     seq: List[str] = []
@@ -381,9 +342,9 @@ def greedy_deterministic_sequence(
         avail = topo_available(removed, preds, remaining)
         if not avail:
             break
-        # optionally limit to ancestor set size
         if max_nodes is not None and len(removed) >= max_nodes:
             break
+
         def exp_attempts(v: str) -> float:
             part = node_to_part.get(v)
             if part is None:
@@ -416,18 +377,9 @@ def simulate_disassembly(
     max_successful_removals: int = 1000,
     force_scale: float = 0.0,
 ) -> Tuple[List[str], int, float]:
-    """
-    Monte Carlo simulation using "retry until success":
-      - choose next node by external policy (here: sequence is generated externally)
-      - but for this function, we only compute stochastic removal when a node is attempted,
-        and then the caller controls which node to attempt next by maintaining removed set.
-
-    For simplicity, this function assumes the caller uses a fixed removal order `seq_order`.
-    To keep it standalone, we implement policy "attempt nodes in the order you pass".
-    """
     raise NotImplementedError("Use simulate_with_policy()")
 
-
+#Monte Carlo disassembly simulator with policy
 def simulate_with_policy(
     preds: Dict[str, Set[str]],
     nodes_to_consider: Set[str],
@@ -452,11 +404,6 @@ def simulate_with_policy(
     difficulty_cost_k: float = 0.10,
     difficulty_p_k: float = 0.05,
 ) -> Tuple[List[str], int, float]:
-    """
-    Run stochastic disassembly simulation until `goal` is removed.
-
-    policy_choose_next(available_nodes, removed_set, wear_state)-> node
-    """
     removed: Set[str] = set()
     wear_state = 0.0
     seq: List[str] = []
@@ -505,7 +452,7 @@ def simulate_with_policy(
                 force_nm = u.removal_force_Nm if u else 0.0
                 wear_increment = u.tool_wear if u else 0.0
 
-                # Task difficulty effects (optional)
+                # Task difficulty effects 
                 diff = 0.0
                 if task_difficulty_by_code and u and u.task_code and u.task_code in task_difficulty_by_code:
                     diff = float(task_difficulty_by_code[u.task_code])
@@ -513,11 +460,15 @@ def simulate_with_policy(
                 # Shared-tool heat: if same tool as last fastener, apply penalty
                 # Use task_code as shared-resource identity (requested).
                 # This means repeated tasks (e.g. many unscrew operations) can accumulate "heat".
-                tool_code = (u.task_code if (u and u.task_code) else str(part_code))
-                heat_pen = heat_level if (last_tool_code is not None and tool_code == last_tool_code) else 0
-                p = p * math.exp(-heat_p * heat_pen) * math.exp(-difficulty_p_k * diff)
+                tool_code = (u.task_code if (
+                    u and u.task_code) else str(part_code))
+                heat_pen = heat_level if (
+                    last_tool_code is not None and tool_code == last_tool_code) else 0
+                p = p * math.exp(-heat_p * heat_pen) * \
+                    math.exp(-difficulty_p_k * diff)
 
-                attempt_cost = 1.0 + (force_scale * force_nm) * (1.0 + heat_f * heat_pen) * (1.0 + difficulty_cost_k * diff)
+                attempt_cost = 1.0 + (force_scale * force_nm) * (1.0 +
+                                                                 heat_f * heat_pen) * (1.0 + difficulty_cost_k * diff)
             else:
                 p = p_component_fn(part_code)
                 attempt_cost = 1.0
@@ -537,7 +488,8 @@ def simulate_with_policy(
                 # Update heat on successful removals (order-level effect)
                 if v.startswith("F"):
                     u = tools_unc_by_part.get(part_code)
-                    tool_code = (u.task_code if (u and u.task_code) else str(part_code))
+                    tool_code = (u.task_code if (
+                        u and u.task_code) else str(part_code))
                     if last_tool_code is not None and tool_code == last_tool_code:
                         heat_level = min(heat_max, heat_level + 1)
                     else:
@@ -552,6 +504,7 @@ def simulate_with_policy(
     return seq, attempts_total, cost_total
 
 
+# GENETIC ALGORITHM
 def evaluate_sequence_by_priority_weights(
     weights_by_node: Dict[str, float],
     preds: Dict[str, Set[str]],
@@ -643,6 +596,7 @@ def _eval_weights(
     return mean_cost
 
 
+#GA core: evolve population (elite + blend crossover + mutation) ---
 def genetic_algorithm_optimize(
     preds: Dict[str, Set[str]],
     nodes_to_consider: Set[str],
@@ -691,7 +645,8 @@ def genetic_algorithm_optimize(
         return out
 
     # initial population
-    population: List[Dict[str, float]] = [make_individual() for _ in range(pop)]
+    population: List[Dict[str, float]] = [make_individual()
+                                          for _ in range(pop)]
 
     best_weights = None
     best_cost = float("inf")
@@ -784,7 +739,8 @@ def genetic_algorithm_optimize(
 
         # print generation summary
         if g % 1 == 0:
-            print(f"[GA] gen {g+1}/{gens} best_mean_cost={scored[0][0]:.4f} global_best={best_cost:.4f} time={time.time()-t0:.2f}s")
+            print(
+                f"[GA] gen {g+1}/{gens} best_mean_cost={scored[0][0]:.4f} global_best={best_cost:.4f} time={time.time()-t0:.2f}s")
 
         # breed next generation
         next_pop = list(elites)
@@ -800,6 +756,7 @@ def genetic_algorithm_optimize(
     return best_weights or {}, best_cost
 
 
+# CLI entry
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--xlsx", default=_DEFAULT_XLSX)
@@ -808,13 +765,18 @@ def main():
     parser.add_argument("--method", choices=["dijkstra", "ga"], default="ga")
 
     # probability model parameters
-    parser.add_argument("--comp_a", type=float, default=0.25, help="component corrosion exponent")
-    parser.add_argument("--comp_b", type=float, default=1.00, help="component temperature exponent")
-    parser.add_argument("--wear_k", type=float, default=1.25, help="tool wear exponent in fastener success prob")
+    parser.add_argument("--comp_a", type=float, default=0.25,
+                        help="component corrosion exponent")
+    parser.add_argument("--comp_b", type=float, default=1.00,
+                        help="component temperature exponent")
+    parser.add_argument("--wear_k", type=float, default=1.25,
+                        help="tool wear exponent in fastener success prob")
 
     # simulation / cost
-    parser.add_argument("--force_scale", type=float, default=0.002, help="time proxy per removal_force_Nm (fasteners only)")
-    parser.add_argument("--sims", type=int, default=200, help="Monte Carlo sims for GA fitness (fine / full eval)")
+    parser.add_argument("--force_scale", type=float, default=0.002,
+                        help="time proxy per removal_force_Nm (fasteners only)")
+    parser.add_argument("--sims", type=int, default=200,
+                        help="Monte Carlo sims for GA fitness (fine / full eval)")
     parser.add_argument("--seed", type=int, default=1234)
 
     # GA parameters
@@ -845,15 +807,19 @@ def main():
 
     nodes, preds = parse_graph_html_edges(args.graph)
     if args.goal not in nodes:
-        raise RuntimeError(f"Goal node {args.goal} not found in graph html. Found nodes: {sorted(nodes)}")
+        raise RuntimeError(
+            f"Goal node {args.goal} not found in graph html. Found nodes: {sorted(nodes)}")
 
     nodes_to_consider = ancestors_of_goal(args.goal, preds)
     # Baseline planning should only consider nodes that unlock goal
     print(f"[INFO] nodes in graph: {len(nodes)}")
-    print(f"[INFO] ancestors needed for goal {args.goal}: {len(nodes_to_consider)} -> {sorted(nodes_to_consider)}")
+    print(
+        f"[INFO] ancestors needed for goal {args.goal}: {len(nodes_to_consider)} -> {sorted(nodes_to_consider)}")
 
-    comps_unc, tools_unc, component_node_to_part, fastener_node_to_part, task_difficulty_by_code = load_excel_uncertainties(args.xlsx, verbose=True)
-    p_component_fn = build_component_prob_fn(comps_unc, a=args.comp_a, b=args.comp_b)
+    comps_unc, tools_unc, component_node_to_part, fastener_node_to_part, task_difficulty_by_code = load_excel_uncertainties(
+        args.xlsx, verbose=True)
+    p_component_fn = build_component_prob_fn(
+        comps_unc, a=args.comp_a, b=args.comp_b)
     p_fastener_fn = build_fastener_prob_fn(tools_unc, wear_k=args.wear_k)
 
     def task_for_node(node_id: str) -> str:
@@ -870,6 +836,7 @@ def main():
     node_to_part.update(component_node_to_part)
     node_to_part.update(fastener_node_to_part)
 
+    # ----- DIJKSTRA PATH: build greedy sequence, then MC-evaluate with wear -----
     if args.method == "dijkstra":
         seq, removed = greedy_deterministic_sequence(
             nodes=nodes_to_consider,
@@ -921,8 +888,10 @@ def main():
             )
             costs.append(cost)
         mean_cost = sum(costs) / len(costs)
-        print(f"[Dijkstra-baseline] MC mean_cost={mean_cost:.4f} (n={len(costs)}) with wear model")
+        print(
+            f"[Dijkstra-baseline] MC mean_cost={mean_cost:.4f} (n={len(costs)}) with wear model")
 
+    # ----- GA PATH: evolve weights, print best priority-induced sequence -----
     elif args.method == "ga":
         best_weights, best_cost = genetic_algorithm_optimize(
             preds=preds,
@@ -977,4 +946,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

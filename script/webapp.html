@@ -141,15 +141,116 @@
       overscroll-behavior: contain;
     }
 
-    /* Fixed comfortable heights (viewport-relative); column scrolls if the stack is taller than the window */
-    #graph {
+    #graphPanel {
       flex: 0 0 auto;
       width: 100%;
       height: clamp(280px, 36vh, 520px);
       min-height: 280px;
+      display: flex;
+      flex-direction: column;
       border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #graphPanel.graph-panel--expanded {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      min-height: 0;
+      border-radius: 0;
+      border: none;
+      background: rgba(15, 23, 42, 0.98);
+    }
+
+    body.graph-viewer-expanded {
+      overflow: hidden;
+    }
+
+    .graph-header {
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #94a3b8;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      flex-shrink: 0;
+    }
+
+    .graph-header b {
+      color: #e2e8f0;
+    }
+
+    .graph-header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .graph-header-text {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .graph-toolbar {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .graph-tool-btn {
+      width: 36px;
+      height: 32px;
+      margin: 0;
+      padding: 0;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(37, 99, 235, 0.35);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .graph-tool-btn--text {
+      width: auto;
+      min-width: 52px;
+      padding: 0 10px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .graph-tool-btn:hover {
+      background: rgba(37, 99, 235, 0.55);
+    }
+
+    .graph-tool-btn:active {
+      transform: scale(0.96);
+    }
+
+    .graph-tool-btn[aria-pressed="true"] {
+      background: rgba(34, 197, 94, 0.45);
+      border-color: rgba(74, 222, 128, 0.45);
+    }
+
+    .graph-host {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+
+    #graph {
+      width: 100%;
+      height: 100%;
     }
 
     #cadPanel {
@@ -608,7 +709,25 @@
       </div>
     </div>
     <div class="main-visual">
-      <div id="graph"></div>
+      <div id="graphPanel">
+        <div class="graph-header">
+          <div class="graph-header-row">
+            <div class="graph-header-text">
+              <b>Knowledge graph</b> · precedence edges · yellow dashed = DSP sequence · greener nodes = higher <i>p</i>
+              · <b>Zoom</b>: <b>+</b> / <b>−</b> · <b>Expand</b> for full-screen
+            </div>
+            <div class="graph-toolbar">
+              <button type="button" class="graph-tool-btn" id="graphZoomIn" title="Zoom in">+</button>
+              <button type="button" class="graph-tool-btn" id="graphZoomOut" title="Zoom out">−</button>
+              <button type="button" class="graph-tool-btn graph-tool-btn--text" id="graphFit" title="Fit graph to view">Fit</button>
+              <button type="button" class="graph-tool-btn graph-tool-btn--text" id="graphExpand" title="Expand graph (Esc to close)" aria-expanded="false">Expand</button>
+            </div>
+          </div>
+        </div>
+        <div id="graphHost" class="graph-host">
+          <div id="graph"></div>
+        </div>
+      </div>
       <div id="cadPanel">
         <div class="cad-header">
           <div class="cad-header-row">
@@ -1622,12 +1741,75 @@
       return { network, nodeDS: ds.nodes, edgeDS: ds.edges, nodeById };
     }
 
+    function initGraphViewerControls(network) {
+      const graphPanel = document.getElementById('graphPanel');
+      const graphHost = document.getElementById('graphHost');
+      const zoomInBtn = document.getElementById('graphZoomIn');
+      const zoomOutBtn = document.getElementById('graphZoomOut');
+      const fitBtn = document.getElementById('graphFit');
+      const expandBtn = document.getElementById('graphExpand');
+      const ZOOM_FACTOR = 1.25;
+
+      function redrawGraph() {
+        if (network && typeof network.redraw === 'function') network.redraw();
+      }
+
+      function zoomGraph(factor) {
+        const scale = network.getScale();
+        network.moveTo({ scale: Math.max(0.08, Math.min(8, scale * factor)), animation: { duration: 180 } });
+      }
+
+      if (zoomInBtn) zoomInBtn.addEventListener('click', () => zoomGraph(ZOOM_FACTOR));
+      if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => zoomGraph(1 / ZOOM_FACTOR));
+      if (fitBtn) {
+        fitBtn.addEventListener('click', () => {
+          network.fit({ animation: { duration: 400 } });
+        });
+      }
+
+      let expanded = false;
+
+      function setExpanded(next) {
+        expanded = !!next;
+        graphPanel.classList.toggle('graph-panel--expanded', expanded);
+        document.body.classList.toggle('graph-viewer-expanded', expanded);
+        if (expandBtn) {
+          expandBtn.textContent = expanded ? 'Close' : 'Expand';
+          expandBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          expandBtn.setAttribute('aria-pressed', expanded ? 'true' : 'false');
+          expandBtn.title = expanded ? 'Close expanded graph (Esc)' : 'Expand graph (Esc to close)';
+        }
+        requestAnimationFrame(() => {
+          redrawGraph();
+          if (expanded) network.fit({ animation: { duration: 350 } });
+        });
+      }
+
+      if (expandBtn) {
+        expandBtn.addEventListener('click', () => setExpanded(!expanded));
+      }
+
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Escape' && expanded) {
+          ev.preventDefault();
+          setExpanded(false);
+        }
+      });
+
+      if (graphHost && typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => redrawGraph());
+        ro.observe(graphHost);
+      } else {
+        window.addEventListener('resize', redrawGraph);
+      }
+    }
+
     (async function init() {
       const graphEl = document.getElementById('graph');
       const sequenceBox = document.getElementById('sequenceBox');
       const goalSelect = document.getElementById('goalSelect');
 
-      const dataResp = await fetch('./build_data.json', { cache: 'no-store' });
+      const dataResp = await fetch('../data/build_data.json', { cache: 'no-store' });
       const data = await dataResp.json();
 
       // Goal options = component nodes (C*)
@@ -1641,6 +1823,7 @@
       goalSelect.value = data.goal || 'C1';
 
       const { network, nodeDS, edgeDS, nodeById } = makeVisNetwork(graphEl, data);
+      initGraphViewerControls(network);
 
       let cadApi = null;
       let lastSequence = [];
@@ -2115,7 +2298,7 @@
 
       async function initCadViewerPanel() {
         try {
-          const { createCadViewer } = await import('./cad_viewer.js');
+          const { createCadViewer } = await import('../CAD/cad_viewer.js');
           cadApi = createCadViewer(document.getElementById('cadCanvasHost'), {
             getNodes: () => data.nodes,
             onGoalNode: (nodeId) => {
@@ -2141,21 +2324,21 @@
             });
           }
 
-          const result = await cadApi.tryLoad('./gearbox_cad.glb');
+          const result = await cadApi.tryLoad('../CAD/gearbox_cad.glb');
           if (result.ok) {
             cadStatusEl.textContent =
-              `Loaded gearbox_cad.glb — ${result.meshCount} meshes, ${result.partCodes} part codes indexed. Click a part to set goal or focus graph nodes.`;
+              `Loaded CAD/gearbox_cad.glb — ${result.meshCount} meshes, ${result.partCodes} part codes indexed. Click a part to set goal or focus graph nodes.`;
             if (lastSequence.length) {
               cadApi.syncSequenceHighlight(lastSequence, lastPAtSelection, nodeByIdMap);
             }
           } else {
             cadStatusEl.innerHTML =
-              'Place <b>gearbox_cad.glb</b> next to this page (export from Blender: File → Export → glTF 2.0). Object names must start with a two-digit BOM part code — same as <code>CAD/blender.py</code> (e.g. <code>01_00_Base</code>, <code>16_Screw_00</code>). Refresh after export.';
+              'Place <b>CAD/gearbox_cad.glb</b> next to this page (export from Blender: File → Export → glTF 2.0). Object names must start with a two-digit BOM part code — same as <code>CAD/blender.py</code> (e.g. <code>01_00_Base</code>, <code>16_Screw_00</code>). Refresh after export.';
           }
         } catch (e) {
           console.error(e);
           cadStatusEl.textContent =
-            'CAD module failed (open DevTools console). Serve this folder over HTTP (e.g. XAMPP) so ES modules can load cad_viewer.js.';
+            'CAD module failed (open DevTools console). Serve this folder over HTTP (e.g. XAMPP) so ES modules can load CAD/cad_viewer.js.';
         }
       }
 

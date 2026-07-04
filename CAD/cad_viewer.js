@@ -1,9 +1,4 @@
-/**
- * Three.js CAD panel: load Blender-exported GLB, raycast pick → graph node / goal,
- * highlight meshes by planned sequence (partCode match).
- * Expects mesh names starting with two-digit part code (see CAD/blender.py).
- */
-// Imports use the import map in webapp.html so addons' internal `from 'three'` resolves.
+
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';

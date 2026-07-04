@@ -1,5 +1,9 @@
 __pycache__/
 *.py[cod]
+
+# Excel lock/temp files (created while workbook is open)
+~$*
+*.tmp
 .Python
 *.log
 .env
